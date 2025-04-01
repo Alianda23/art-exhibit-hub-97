@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Signup = () => {
   const [name, setName] = useState("");
@@ -16,6 +17,7 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signup } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,15 +43,31 @@ const Signup = () => {
     
     setLoading(true);
     
-    // Simulate API call for registration
-    setTimeout(() => {
+    try {
+      const success = await signup(name, email, password, phone);
+      
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Account created successfully! You are now logged in.",
+        });
+        navigate("/");
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create account. This email may already be registered.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Success",
-        description: "Account created successfully! Please login.",
+        title: "Error",
+        description: "An unexpected error occurred. Please try again later.",
+        variant: "destructive",
       });
+    } finally {
       setLoading(false);
-      navigate("/login");
-    }, 1500);
+    }
   };
 
   return (
