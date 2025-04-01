@@ -1,5 +1,5 @@
-
-import React, { useRef } from 'react';
+import React from 'react';
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowRight, MapPin, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
