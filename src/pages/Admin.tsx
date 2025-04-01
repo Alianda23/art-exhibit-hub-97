@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
-import { formatPrice, formatDate } from '@/utils/formatters';
+import { formatPrice, formatDate, formatDateRange } from '@/utils/formatters';
 import { artworks, exhibitions } from '@/data/mockData';
 import { CalendarIcon, MapPinIcon, UserIcon, Trash2Icon, EditIcon, ImageIcon, PlusIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
