@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
@@ -68,7 +69,7 @@ const Home = () => {
         <div className="container mx-auto px-4 md:px-6">
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-serif font-bold mb-6">
-              About <span className="text-gold">Art</span>Exhibit
+              About <span className="text-gold">Afri</span>Art
             </h2>
             <p className="text-lg text-gray-600 mb-8">
               We are dedicated to showcasing the rich artistic heritage and contemporary creativity of Kenya. 
