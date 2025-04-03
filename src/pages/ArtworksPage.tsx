@@ -1,20 +1,46 @@
 
-import React, { useState } from 'react';
-import { artworks } from '@/data/mockData';
+import React, { useState, useEffect } from 'react';
 import ArtworkCard from '@/components/ArtworkCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { formatPrice } from '@/utils/formatters';
 import { Search } from 'lucide-react';
+import { getAllArtworks } from '@/services/api';
+import { Artwork } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 const ArtworksPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [priceRange, setPriceRange] = useState([0, 100000]);
+  const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   
   // Get min and max prices from artwork data
   const minPrice = 0;
   const maxPrice = 100000;
+
+  useEffect(() => {
+    const fetchArtworks = async () => {
+      try {
+        setLoading(true);
+        const data = await getAllArtworks();
+        setArtworks(data);
+      } catch (error) {
+        console.error('Failed to fetch artworks:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load artworks. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchArtworks();
+  }, [toast]);
 
   // Filter artworks based on search term and price range
   const filteredArtworks = artworks.filter((artwork) => {
@@ -83,10 +109,17 @@ const ArtworksPage = () => {
         
         {/* Results */}
         <div className="mb-6">
-          <p className="text-gray-600">Showing {filteredArtworks.length} artworks</p>
+          <p className="text-gray-600">
+            {loading ? "Loading artworks..." : `Showing ${filteredArtworks.length} artworks`}
+          </p>
         </div>
         
-        {filteredArtworks.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-16">
+            <h3 className="text-2xl font-medium mb-2">Loading artworks...</h3>
+            <p className="text-gray-600">Please wait while we fetch the artworks</p>
+          </div>
+        ) : filteredArtworks.length > 0 ? (
           <div className="artwork-grid">
             {filteredArtworks.map((artwork) => (
               <ArtworkCard key={artwork.id} artwork={artwork} />

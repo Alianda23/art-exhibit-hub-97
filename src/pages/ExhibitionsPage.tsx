@@ -1,16 +1,42 @@
 
-import React, { useState } from 'react';
-import { exhibitions } from '@/data/mockData';
+import React, { useState, useEffect } from 'react';
 import ExhibitionCard from '@/components/ExhibitionCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search } from 'lucide-react';
+import { Exhibition } from '@/types';
+import { getAllExhibitions } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 const ExhibitionsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [exhibitions, setExhibitions] = useState<Exhibition[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   
+  useEffect(() => {
+    const fetchExhibitions = async () => {
+      try {
+        setLoading(true);
+        const data = await getAllExhibitions();
+        setExhibitions(data);
+      } catch (error) {
+        console.error('Failed to fetch exhibitions:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load exhibitions. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchExhibitions();
+  }, [toast]);
+
   // Filter exhibitions based on search term and status filter
   const filteredExhibitions = exhibitions.filter((exhibition) => {
     const matchesSearch = 
@@ -73,10 +99,17 @@ const ExhibitionsPage = () => {
         
         {/* Results */}
         <div className="mb-6">
-          <p className="text-gray-600">Showing {filteredExhibitions.length} exhibitions</p>
+          <p className="text-gray-600">
+            {loading ? "Loading exhibitions..." : `Showing ${filteredExhibitions.length} exhibitions`}
+          </p>
         </div>
         
-        {filteredExhibitions.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-16">
+            <h3 className="text-2xl font-medium mb-2">Loading exhibitions...</h3>
+            <p className="text-gray-600">Please wait while we fetch the exhibitions</p>
+          </div>
+        ) : filteredExhibitions.length > 0 ? (
           <div className="exhibition-grid">
             {filteredExhibitions.map((exhibition) => (
               <ExhibitionCard key={exhibition.id} exhibition={exhibition} />

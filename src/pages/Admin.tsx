@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,9 +9,39 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { formatPrice, formatDate, formatDateRange } from '@/utils/formatters';
-import { artworks, exhibitions } from '@/data/mockData';
 import { CalendarIcon, MapPinIcon, UserIcon, Trash2Icon, EditIcon, ImageIcon, PlusIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Artwork, Exhibition } from '@/types';
+import { getAllArtworks, getAllExhibitions, createArtwork, updateArtwork, deleteArtwork, createExhibition, updateExhibition, deleteExhibition } from '@/services/api';
+
+// Interface for artwork form
+interface ArtworkForm {
+  id?: string;
+  title: string;
+  artist: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  dimensions: string;
+  medium: string;
+  year: number;
+  status: 'available' | 'sold';
+}
+
+// Interface for exhibition form
+interface ExhibitionForm {
+  id?: string;
+  title: string;
+  description: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  ticketPrice: number;
+  imageUrl: string;
+  totalSlots: number;
+  availableSlots: number;
+  status: 'upcoming' | 'ongoing' | 'past';
+}
 
 // Mock data for bookings and orders
 const mockBookings = [
@@ -100,6 +130,67 @@ const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // State for artworks and exhibitions
+  const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [exhibitions, setExhibitions] = useState<Exhibition[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // State for adding/editing artwork
+  const [isAddingArtwork, setIsAddingArtwork] = useState(false);
+  const [isEditingArtwork, setIsEditingArtwork] = useState(false);
+  const [currentArtwork, setCurrentArtwork] = useState<ArtworkForm>({
+    title: '',
+    artist: '',
+    description: '',
+    price: 0,
+    imageUrl: '',
+    dimensions: '',
+    medium: '',
+    year: new Date().getFullYear(),
+    status: 'available'
+  });
+  
+  // State for adding/editing exhibition
+  const [isAddingExhibition, setIsAddingExhibition] = useState(false);
+  const [isEditingExhibition, setIsEditingExhibition] = useState(false);
+  const [currentExhibition, setCurrentExhibition] = useState<ExhibitionForm>({
+    title: '',
+    description: '',
+    location: '',
+    startDate: '',
+    endDate: '',
+    ticketPrice: 0,
+    imageUrl: '',
+    totalSlots: 0,
+    availableSlots: 0,
+    status: 'upcoming'
+  });
+
+  // Fetch artworks and exhibitions on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const artworksData = await getAllArtworks();
+        const exhibitionsData = await getAllExhibitions();
+        
+        setArtworks(artworksData);
+        setExhibitions(exhibitionsData);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load data. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [toast]);
 
   if (!currentUser || !isAdmin) {
     navigate('/admin-login');
@@ -112,10 +203,244 @@ const Admin = () => {
   };
 
   const handleAction = (action: string, type: string, id: string) => {
-    toast({
-      title: "Action Triggered",
-      description: `${action} ${type} with ID: ${id}`,
+    if (type === 'artwork') {
+      if (action === 'edit') {
+        const artwork = artworks.find(a => a.id === id);
+        if (artwork) {
+          setCurrentArtwork({
+            id: artwork.id,
+            title: artwork.title,
+            artist: artwork.artist,
+            description: artwork.description,
+            price: artwork.price,
+            imageUrl: artwork.imageUrl,
+            dimensions: artwork.dimensions || '',
+            medium: artwork.medium || '',
+            year: artwork.year || new Date().getFullYear(),
+            status: artwork.status
+          });
+          setIsEditingArtwork(true);
+          setIsAddingArtwork(false);
+        }
+      } else if (action === 'delete') {
+        if (window.confirm('Are you sure you want to delete this artwork?')) {
+          deleteArtwork(id)
+            .then(() => {
+              toast({
+                title: "Success",
+                description: "Artwork deleted successfully",
+              });
+              // Remove the deleted artwork from state
+              setArtworks(artworks.filter(a => a.id !== id));
+            })
+            .catch(error => {
+              console.error('Error deleting artwork:', error);
+              toast({
+                title: "Error",
+                description: "Failed to delete artwork",
+                variant: "destructive",
+              });
+            });
+        }
+      }
+    } else if (type === 'exhibition') {
+      if (action === 'edit') {
+        const exhibition = exhibitions.find(e => e.id === id);
+        if (exhibition) {
+          setCurrentExhibition({
+            id: exhibition.id,
+            title: exhibition.title,
+            description: exhibition.description,
+            location: exhibition.location,
+            startDate: exhibition.startDate,
+            endDate: exhibition.endDate,
+            ticketPrice: exhibition.ticketPrice,
+            imageUrl: exhibition.imageUrl,
+            totalSlots: exhibition.totalSlots,
+            availableSlots: exhibition.availableSlots,
+            status: exhibition.status
+          });
+          setIsEditingExhibition(true);
+          setIsAddingExhibition(false);
+        }
+      } else if (action === 'delete') {
+        if (window.confirm('Are you sure you want to delete this exhibition?')) {
+          deleteExhibition(id)
+            .then(() => {
+              toast({
+                title: "Success",
+                description: "Exhibition deleted successfully",
+              });
+              // Remove the deleted exhibition from state
+              setExhibitions(exhibitions.filter(e => e.id !== id));
+            })
+            .catch(error => {
+              console.error('Error deleting exhibition:', error);
+              toast({
+                title: "Error",
+                description: "Failed to delete exhibition",
+                variant: "destructive",
+              });
+            });
+        }
+      }
+    } else {
+      toast({
+        title: "Action Triggered",
+        description: `${action} ${type} with ID: ${id}`,
+      });
+    }
+  };
+
+  const handleAddArtwork = () => {
+    setCurrentArtwork({
+      title: '',
+      artist: '',
+      description: '',
+      price: 0,
+      imageUrl: '',
+      dimensions: '',
+      medium: '',
+      year: new Date().getFullYear(),
+      status: 'available'
     });
+    setIsAddingArtwork(true);
+    setIsEditingArtwork(false);
+  };
+
+  const handleAddExhibition = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    
+    setCurrentExhibition({
+      title: '',
+      description: '',
+      location: '',
+      startDate: today,
+      endDate: nextMonth.toISOString().split('T')[0],
+      ticketPrice: 0,
+      imageUrl: '',
+      totalSlots: 0,
+      availableSlots: 0,
+      status: 'upcoming'
+    });
+    setIsAddingExhibition(true);
+    setIsEditingExhibition(false);
+  };
+
+  const handleArtworkInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    setCurrentArtwork(prev => ({
+      ...prev,
+      [name]: name === 'price' || name === 'year' ? Number(value) : value
+    }));
+  };
+
+  const handleExhibitionInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    setCurrentExhibition(prev => ({
+      ...prev,
+      [name]: ['ticketPrice', 'totalSlots', 'availableSlots'].includes(name) ? Number(value) : value
+    }));
+  };
+
+  const handleStatusChange = (status: any, type: 'artwork' | 'exhibition') => {
+    if (type === 'artwork') {
+      setCurrentArtwork(prev => ({
+        ...prev,
+        status: status as 'available' | 'sold'
+      }));
+    } else {
+      setCurrentExhibition(prev => ({
+        ...prev,
+        status: status as 'upcoming' | 'ongoing' | 'past'
+      }));
+    }
+  };
+
+  const saveArtwork = async () => {
+    try {
+      if (isEditingArtwork && currentArtwork.id) {
+        // Update existing artwork
+        const updatedArtwork = await updateArtwork(currentArtwork.id, currentArtwork);
+        
+        // Update artworks state
+        setArtworks(prev => 
+          prev.map(artwork => artwork.id === currentArtwork.id ? updatedArtwork : artwork)
+        );
+        
+        toast({
+          title: "Success",
+          description: "Artwork updated successfully",
+        });
+      } else {
+        // Create new artwork
+        const newArtwork = await createArtwork(currentArtwork);
+        
+        // Add new artwork to state
+        setArtworks(prev => [...prev, newArtwork]);
+        
+        toast({
+          title: "Success",
+          description: "Artwork created successfully",
+        });
+      }
+      
+      // Reset form
+      setIsAddingArtwork(false);
+      setIsEditingArtwork(false);
+    } catch (error) {
+      console.error('Error saving artwork:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save artwork",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveExhibition = async () => {
+    try {
+      if (isEditingExhibition && currentExhibition.id) {
+        // Update existing exhibition
+        const updatedExhibition = await updateExhibition(currentExhibition.id, currentExhibition);
+        
+        // Update exhibitions state
+        setExhibitions(prev => 
+          prev.map(exhibition => exhibition.id === currentExhibition.id ? updatedExhibition : exhibition)
+        );
+        
+        toast({
+          title: "Success",
+          description: "Exhibition updated successfully",
+        });
+      } else {
+        // Create new exhibition
+        const newExhibition = await createExhibition(currentExhibition);
+        
+        // Add new exhibition to state
+        setExhibitions(prev => [...prev, newExhibition]);
+        
+        toast({
+          title: "Success",
+          description: "Exhibition created successfully",
+        });
+      }
+      
+      // Reset form
+      setIsAddingExhibition(false);
+      setIsEditingExhibition(false);
+    } catch (error) {
+      console.error('Error saving exhibition:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save exhibition",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -155,7 +480,7 @@ const Admin = () => {
                   <CardDescription>Available for purchase</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold">{artworks.length}</p>
+                  <p className="text-3xl font-bold">{loading ? '...' : artworks.length}</p>
                 </CardContent>
               </Card>
               
@@ -165,7 +490,7 @@ const Admin = () => {
                   <CardDescription>Current and upcoming</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold">{exhibitions.length}</p>
+                  <p className="text-3xl font-bold">{loading ? '...' : exhibitions.length}</p>
                 </CardContent>
               </Card>
               
@@ -253,173 +578,475 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="artworks" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-serif font-semibold">Manage Artworks</h2>
-              <Button className="bg-gold hover:bg-gold-dark text-white">
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add New Artwork
-              </Button>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="p-4">
-                <Input placeholder="Search artworks..." className="max-w-md" />
+            {isAddingArtwork || isEditingArtwork ? (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-2xl font-serif font-semibold mb-6">
+                  {isEditingArtwork ? 'Edit Artwork' : 'Add New Artwork'}
+                </h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="title">Title</Label>
+                      <Input 
+                        id="title" 
+                        name="title" 
+                        value={currentArtwork.title} 
+                        onChange={handleArtworkInputChange} 
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="artist">Artist</Label>
+                      <Input 
+                        id="artist" 
+                        name="artist" 
+                        value={currentArtwork.artist} 
+                        onChange={handleArtworkInputChange} 
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="price">Price (KES)</Label>
+                      <Input 
+                        id="price" 
+                        name="price" 
+                        type="number" 
+                        value={currentArtwork.price} 
+                        onChange={handleArtworkInputChange} 
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="imageUrl">Image URL</Label>
+                      <Input 
+                        id="imageUrl" 
+                        name="imageUrl" 
+                        value={currentArtwork.imageUrl} 
+                        onChange={handleArtworkInputChange} 
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="dimensions">Dimensions</Label>
+                      <Input 
+                        id="dimensions" 
+                        name="dimensions" 
+                        value={currentArtwork.dimensions} 
+                        onChange={handleArtworkInputChange}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="medium">Medium</Label>
+                      <Input 
+                        id="medium" 
+                        name="medium" 
+                        value={currentArtwork.medium} 
+                        onChange={handleArtworkInputChange}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="year">Year</Label>
+                      <Input 
+                        id="year" 
+                        name="year" 
+                        type="number" 
+                        value={currentArtwork.year} 
+                        onChange={handleArtworkInputChange}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="status">Status</Label>
+                      <select 
+                        id="status" 
+                        name="status" 
+                        value={currentArtwork.status}
+                        onChange={(e) => handleStatusChange(e.target.value, 'artwork')}
+                        className="w-full border rounded-md p-2"
+                      >
+                        <option value="available">Available</option>
+                        <option value="sold">Sold</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea 
+                    id="description" 
+                    name="description" 
+                    value={currentArtwork.description} 
+                    onChange={handleArtworkInputChange} 
+                    rows={4}
+                    required
+                  />
+                </div>
+                
+                <div className="mt-6 flex justify-end space-x-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsAddingArtwork(false);
+                      setIsEditingArtwork(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="bg-gold hover:bg-gold-dark text-white"
+                    onClick={saveArtwork}
+                  >
+                    {isEditingArtwork ? 'Update Artwork' : 'Save Artwork'}
+                  </Button>
+                </div>
               </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artwork</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artist</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {artworks.map((artwork) => (
-                      <tr key={artwork.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="h-10 w-10 rounded overflow-hidden bg-gray-100 flex-shrink-0">
-                              <img
-                                src={artwork.imageUrl}
-                                alt={artwork.title}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{artwork.title}</div>
-                              <div className="text-sm text-gray-500">{artwork.year}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{artwork.artist}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatPrice(artwork.price)}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                            ${artwork.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
-                          `}>
-                            {artwork.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex space-x-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 px-2 text-blue-600"
-                              onClick={() => handleAction('edit', 'artwork', artwork.id)}
-                            >
-                              <EditIcon className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 px-2 text-red-600"
-                              onClick={() => handleAction('delete', 'artwork', artwork.id)}
-                            >
-                              <Trash2Icon className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-serif font-semibold">Manage Artworks</h2>
+                  <Button className="bg-gold hover:bg-gold-dark text-white" onClick={handleAddArtwork}>
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Add New Artwork
+                  </Button>
+                </div>
+                
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div className="p-4">
+                    <Input placeholder="Search artworks..." className="max-w-md" />
+                  </div>
+                  
+                  {loading ? (
+                    <div className="p-8 text-center">
+                      <p>Loading artworks...</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artwork</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artist</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {artworks.map((artwork) => (
+                            <tr key={artwork.id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="h-10 w-10 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                                    <img
+                                      src={artwork.imageUrl}
+                                      alt={artwork.title}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-gray-900">{artwork.title}</div>
+                                    <div className="text-sm text-gray-500">{artwork.year}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">{artwork.artist}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">{formatPrice(artwork.price)}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                  ${artwork.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
+                                `}>
+                                  {artwork.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 px-2 text-blue-600"
+                                    onClick={() => handleAction('edit', 'artwork', artwork.id)}
+                                  >
+                                    <EditIcon className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 px-2 text-red-600"
+                                    onClick={() => handleAction('delete', 'artwork', artwork.id)}
+                                  >
+                                    <Trash2Icon className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="exhibitions" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-serif font-semibold">Manage Exhibitions</h2>
-              <Button className="bg-gold hover:bg-gold-dark text-white">
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add New Exhibition
-              </Button>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="p-4">
-                <Input placeholder="Search exhibitions..." className="max-w-md" />
+            {isAddingExhibition || isEditingExhibition ? (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-2xl font-serif font-semibold mb-6">
+                  {isEditingExhibition ? 'Edit Exhibition' : 'Add New Exhibition'}
+                </h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="title">Title</Label>
+                      <Input 
+                        id="title" 
+                        name="title" 
+                        value={currentExhibition.title} 
+                        onChange={handleExhibitionInputChange} 
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="location">Location</Label>
+                      <Input 
+                        id="location" 
+                        name="location" 
+                        value={currentExhibition.location} 
+                        onChange={handleExhibitionInputChange} 
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="startDate">Start Date</Label>
+                      <Input 
+                        id="startDate" 
+                        name="startDate" 
+                        type="date" 
+                        value={currentExhibition.startDate} 
+                        onChange={handleExhibitionInputChange} 
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="endDate">End Date</Label>
+                      <Input 
+                        id="endDate" 
+                        name="endDate" 
+                        type="date" 
+                        value={currentExhibition.endDate} 
+                        onChange={handleExhibitionInputChange} 
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="ticketPrice">Ticket Price (KES)</Label>
+                      <Input 
+                        id="ticketPrice" 
+                        name="ticketPrice" 
+                        type="number" 
+                        value={currentExhibition.ticketPrice} 
+                        onChange={handleExhibitionInputChange} 
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="totalSlots">Total Slots</Label>
+                      <Input 
+                        id="totalSlots" 
+                        name="totalSlots" 
+                        type="number" 
+                        value={currentExhibition.totalSlots} 
+                        onChange={handleExhibitionInputChange} 
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="availableSlots">Available Slots</Label>
+                      <Input 
+                        id="availableSlots" 
+                        name="availableSlots" 
+                        type="number" 
+                        value={currentExhibition.availableSlots} 
+                        onChange={handleExhibitionInputChange} 
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="status">Status</Label>
+                      <select 
+                        id="status" 
+                        name="status" 
+                        value={currentExhibition.status}
+                        onChange={(e) => handleStatusChange(e.target.value, 'exhibition')}
+                        className="w-full border rounded-md p-2"
+                      >
+                        <option value="upcoming">Upcoming</option>
+                        <option value="ongoing">Ongoing</option>
+                        <option value="past">Past</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <Label htmlFor="imageUrl">Image URL</Label>
+                  <Input 
+                    id="imageUrl" 
+                    name="imageUrl" 
+                    value={currentExhibition.imageUrl} 
+                    onChange={handleExhibitionInputChange} 
+                    required
+                  />
+                </div>
+                
+                <div className="mt-4">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea 
+                    id="description" 
+                    name="description" 
+                    value={currentExhibition.description} 
+                    onChange={handleExhibitionInputChange} 
+                    rows={4}
+                    required
+                  />
+                </div>
+                
+                <div className="mt-6 flex justify-end space-x-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsAddingExhibition(false);
+                      setIsEditingExhibition(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="bg-gold hover:bg-gold-dark text-white"
+                    onClick={saveExhibition}
+                  >
+                    {isEditingExhibition ? 'Update Exhibition' : 'Save Exhibition'}
+                  </Button>
+                </div>
               </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exhibition</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket Price</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slots</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {exhibitions.map((exhibition) => (
-                      <tr key={exhibition.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="h-10 w-10 rounded overflow-hidden bg-gray-100 flex-shrink-0">
-                              <img
-                                src={exhibition.imageUrl}
-                                alt={exhibition.title}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{exhibition.title}</div>
-                              <div className="text-sm text-gray-500">{exhibition.status}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{exhibition.location}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatDateRange(exhibition.startDate, exhibition.endDate)}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatPrice(exhibition.ticketPrice)}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {exhibition.availableSlots} / {exhibition.totalSlots}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex space-x-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 px-2 text-blue-600"
-                              onClick={() => handleAction('edit', 'exhibition', exhibition.id)}
-                            >
-                              <EditIcon className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 px-2 text-red-600"
-                              onClick={() => handleAction('delete', 'exhibition', exhibition.id)}
-                            >
-                              <Trash2Icon className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-serif font-semibold">Manage Exhibitions</h2>
+                  <Button className="bg-gold hover:bg-gold-dark text-white" onClick={handleAddExhibition}>
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Add New Exhibition
+                  </Button>
+                </div>
+                
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div className="p-4">
+                    <Input placeholder="Search exhibitions..." className="max-w-md" />
+                  </div>
+                  
+                  {loading ? (
+                    <div className="p-8 text-center">
+                      <p>Loading exhibitions...</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exhibition</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket Price</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slots</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {exhibitions.map((exhibition) => (
+                            <tr key={exhibition.id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="h-10 w-10 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                                    <img
+                                      src={exhibition.imageUrl}
+                                      alt={exhibition.title}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-gray-900">{exhibition.title}</div>
+                                    <div className="text-sm text-gray-500">{exhibition.status}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">{exhibition.location}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">{formatDateRange(exhibition.startDate, exhibition.endDate)}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">{formatPrice(exhibition.ticketPrice)}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">
+                                  {exhibition.availableSlots} / {exhibition.totalSlots}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 px-2 text-blue-600"
+                                    onClick={() => handleAction('edit', 'exhibition', exhibition.id)}
+                                  >
+                                    <EditIcon className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 px-2 text-red-600"
+                                    onClick={() => handleAction('delete', 'exhibition', exhibition.id)}
+                                  >
+                                    <Trash2Icon className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="orders" className="space-y-6">

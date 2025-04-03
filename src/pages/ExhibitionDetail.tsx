@@ -1,7 +1,6 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { exhibitions } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { formatPrice, formatDateRange } from '@/utils/formatters';
@@ -11,6 +10,8 @@ import { MapPin, Calendar, Ticket, Users } from 'lucide-react';
 import ExhibitionCard from '@/components/ExhibitionCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Exhibition } from '@/types';
+import { getExhibition, getAllExhibitions } from '@/services/api';
 
 const ExhibitionDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,17 +19,40 @@ const ExhibitionDetail = () => {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [slots, setSlots] = useState(1);
+  const [exhibition, setExhibition] = useState<Exhibition | null>(null);
+  const [relatedExhibitions, setRelatedExhibitions] = useState<Exhibition[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const exhibition = useMemo(() => {
-    return exhibitions.find((e) => e.id === id);
-  }, [id]);
+  useEffect(() => {
+    const fetchExhibition = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        const data = await getExhibition(id);
+        setExhibition(data);
+        
+        // Fetch all exhibitions to get related ones
+        const allExhibitions = await getAllExhibitions();
+        const related = allExhibitions
+          .filter((e: Exhibition) => e.id !== id)
+          .slice(0, 2);
+        
+        setRelatedExhibitions(related);
+      } catch (error) {
+        console.error('Failed to fetch exhibition:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load exhibition details. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const relatedExhibitions = useMemo(() => {
-    if (!exhibition) return [];
-    return exhibitions
-      .filter((e) => e.id !== id)
-      .slice(0, 2);
-  }, [id, exhibition]);
+    fetchExhibition();
+  }, [id, toast]);
 
   const handleBookNow = () => {
     if (!isAuthenticated) {
@@ -52,6 +76,15 @@ const ExhibitionDetail = () => {
     
     navigate(`/checkout/exhibition/${id}?slots=${slots}`);
   };
+
+  if (loading) {
+    return (
+      <div className="py-16 px-4 text-center">
+        <h1 className="text-2xl font-semibold mb-4">Loading Exhibition...</h1>
+        <p className="mb-6">Please wait while we fetch the exhibition details.</p>
+      </div>
+    );
+  }
 
   if (!exhibition) {
     return (

@@ -1,30 +1,54 @@
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { artworks } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { formatPrice } from '@/utils/formatters';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import ArtworkCard from '@/components/ArtworkCard';
+import { Artwork } from '@/types';
+import { getArtwork, getAllArtworks } from '@/services/api';
 
 const ArtworkDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [artwork, setArtwork] = useState<Artwork | null>(null);
+  const [relatedArtworks, setRelatedArtworks] = useState<Artwork[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const artwork = useMemo(() => {
-    return artworks.find((a) => a.id === id);
-  }, [id]);
+  useEffect(() => {
+    const fetchArtwork = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        const data = await getArtwork(id);
+        setArtwork(data);
+        
+        // Fetch all artworks to get related ones by the same artist
+        const allArtworks = await getAllArtworks();
+        const related = allArtworks
+          .filter((a: Artwork) => a.id !== id && a.artist === data.artist)
+          .slice(0, 3);
+        
+        setRelatedArtworks(related);
+      } catch (error) {
+        console.error('Failed to fetch artwork:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load artwork details. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const relatedArtworks = useMemo(() => {
-    if (!artwork) return [];
-    return artworks
-      .filter((a) => a.id !== id && a.artist === artwork.artist)
-      .slice(0, 3);
-  }, [id, artwork]);
+    fetchArtwork();
+  }, [id, toast]);
 
   const handleBuyNow = () => {
     if (!isAuthenticated) {
@@ -39,6 +63,15 @@ const ArtworkDetail = () => {
     
     navigate(`/checkout/artwork/${id}`);
   };
+
+  if (loading) {
+    return (
+      <div className="py-16 px-4 text-center">
+        <h1 className="text-2xl font-semibold mb-4">Loading Artwork...</h1>
+        <p className="mb-6">Please wait while we fetch the artwork details.</p>
+      </div>
+    );
+  }
 
   if (!artwork) {
     return (

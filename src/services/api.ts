@@ -27,6 +27,35 @@ interface LoginData {
   password: string;
 }
 
+// Interface for artwork data
+interface ArtworkData {
+  id?: string;
+  title: string;
+  artist: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  dimensions?: string;
+  medium?: string;
+  year?: number;
+  status: 'available' | 'sold';
+}
+
+// Interface for exhibition data
+interface ExhibitionData {
+  id?: string;
+  title: string;
+  description: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  ticketPrice: number;
+  imageUrl: string;
+  totalSlots: number;
+  availableSlots: number;
+  status: 'upcoming' | 'ongoing' | 'past';
+}
+
 // Helper function to store auth data
 const storeAuthData = (data: AuthResponse, isAdmin: boolean) => {
   if (data.token) {
@@ -173,4 +202,120 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
     console.error('API request error:', error);
     throw error;
   }
+};
+
+// Get all artworks
+export const getAllArtworks = async () => {
+  try {
+    const response = await fetch(`${API_URL}/artworks`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch artworks');
+    }
+    const data = await response.json();
+    return data.artworks || [];
+  } catch (error) {
+    console.error('Error fetching artworks:', error);
+    throw error;
+  }
+};
+
+// Get a single artwork
+export const getArtwork = async (id: string) => {
+  try {
+    const response = await fetch(`${API_URL}/artworks/${id}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch artwork');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching artwork:', error);
+    throw error;
+  }
+};
+
+// Create a new artwork (admin only)
+export const createArtwork = async (artworkData: ArtworkData) => {
+  return await authFetch('/artworks', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(artworkData),
+  });
+};
+
+// Update an existing artwork (admin only)
+export const updateArtwork = async (id: string, artworkData: ArtworkData) => {
+  return await authFetch(`/artworks/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(artworkData),
+  });
+};
+
+// Delete an artwork (admin only)
+export const deleteArtwork = async (id: string) => {
+  return await authFetch(`/artworks/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+// Get all exhibitions
+export const getAllExhibitions = async () => {
+  try {
+    const response = await fetch(`${API_URL}/exhibitions`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch exhibitions');
+    }
+    const data = await response.json();
+    return data.exhibitions || [];
+  } catch (error) {
+    console.error('Error fetching exhibitions:', error);
+    throw error;
+  }
+};
+
+// Get a single exhibition
+export const getExhibition = async (id: string) => {
+  try {
+    const response = await fetch(`${API_URL}/exhibitions/${id}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch exhibition');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching exhibition:', error);
+    throw error;
+  }
+};
+
+// Create a new exhibition (admin only)
+export const createExhibition = async (exhibitionData: ExhibitionData) => {
+  return await authFetch('/exhibitions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(exhibitionData),
+  });
+};
+
+// Update an existing exhibition (admin only)
+export const updateExhibition = async (id: string, exhibitionData: ExhibitionData) => {
+  return await authFetch(`/exhibitions/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(exhibitionData),
+  });
+};
+
+// Delete an exhibition (admin only)
+export const deleteExhibition = async (id: string) => {
+  return await authFetch(`/exhibitions/${id}`, {
+    method: 'DELETE',
+  });
 };
