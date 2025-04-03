@@ -15,6 +15,7 @@ from auth import register_user, login_user, login_admin, create_admin
 from artwork import get_all_artworks, get_artwork, create_artwork, update_artwork, delete_artwork
 from exhibition import get_all_exhibitions, get_exhibition, create_exhibition, update_exhibition, delete_exhibition
 from contact import create_contact_message, get_messages, update_message
+from mpesa import handle_stk_push_request, handle_mpesa_callback, check_transaction_status
 
 # Set CORS headers for the server
 def set_cors_headers(handler):
@@ -77,6 +78,15 @@ class RequestHandler(BaseHTTPRequestHandler):
             else:
                 self._set_response()
             
+            self.wfile.write(json.dumps(response).encode())
+            return
+        
+        # Check M-Pesa transaction status
+        elif path.startswith('/mpesa/status/') and len(path.split('/')) == 4:
+            checkout_request_id = path.split('/')[3]
+            response = check_transaction_status(checkout_request_id)
+            
+            self._set_response()
             self.wfile.write(json.dumps(response).encode())
             return
         
@@ -199,6 +209,26 @@ class RequestHandler(BaseHTTPRequestHandler):
             else:
                 self._set_response(201)
             
+            self.wfile.write(json.dumps(response).encode())
+            return
+        
+        # M-Pesa STK Push
+        elif self.path == '/mpesa/stk-push':
+            response = handle_stk_push_request(data)
+            
+            if "error" in response:
+                self._set_response(400)
+            else:
+                self._set_response(200)
+            
+            self.wfile.write(json.dumps(response).encode())
+            return
+        
+        # M-Pesa Callback
+        elif self.path == '/mpesa/callback':
+            response = handle_mpesa_callback(data)
+            
+            self._set_response(200)
             self.wfile.write(json.dumps(response).encode())
             return
         
