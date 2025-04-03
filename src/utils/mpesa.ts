@@ -57,3 +57,63 @@ export const checkTransactionStatus = async (checkoutRequestId: string): Promise
     throw error;
   }
 };
+
+// Function to finalize order after payment
+export const finalizeOrder = async (
+  checkoutRequestId: string,
+  orderType: 'artwork' | 'exhibition',
+  orderData: any
+): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/orders/finalize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        checkoutRequestId,
+        orderType,
+        orderData
+      }),
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Order finalization error:', error);
+    throw error;
+  }
+};
+
+// Function to get user orders
+export const getUserOrders = async (userId: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/orders/user/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Get user orders error:', error);
+    throw error;
+  }
+};
+
+// Function to generate exhibition ticket
+export const generateExhibitionTicket = async (bookingId: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/tickets/generate/${bookingId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Ticket generation error:', error);
+    throw error;
+  }
+};

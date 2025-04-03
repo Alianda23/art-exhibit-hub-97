@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatPrice } from '@/utils/formatters';
 import { useToast } from '@/hooks/use-toast';
-import { initiateSTKPush } from '@/utils/mpesa';
+import { initiateSTKPush, checkTransactionStatus, finalizeOrder } from '@/utils/mpesa';
 import { DollarSign, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 type PendingOrder = {
   type: 'artwork' | 'exhibition';
@@ -27,11 +28,14 @@ type PendingOrder = {
 const Payment = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { currentUser } = useAuth();
   const [order, setOrder] = useState<PendingOrder | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'success' | 'failed'>('pending');
   const [checkoutRequestId, setCheckoutRequestId] = useState('');
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const [statusCheckAttempts, setStatusCheckAttempts] = useState(0);
 
   useEffect(() => {
     // Get order details from localStorage
@@ -50,6 +54,108 @@ const Payment = () => {
       navigate('/');
     }
   }, [navigate]);
+
+  // Effect to check payment status
+  useEffect(() => {
+    let statusCheckInterval: number | null = null;
+    
+    const checkStatus = async () => {
+      if (!checkoutRequestId || paymentStatus !== 'processing' || checkingStatus) {
+        return;
+      }
+      
+      setCheckingStatus(true);
+      
+      try {
+        const statusResponse = await checkTransactionStatus(checkoutRequestId);
+        
+        if (statusResponse.ResultCode === "0") {
+          // Payment successful
+          clearInterval(statusCheckInterval as number);
+          
+          // Update payment status
+          setPaymentStatus('success');
+          
+          // Finalize the order in the backend
+          if (order && currentUser) {
+            const orderData = {
+              ...order,
+              userId: currentUser.id,
+              phoneNumber,
+              checkoutRequestId,
+              paymentStatus: 'completed'
+            };
+            
+            // Call API to save order/booking to database
+            const finalizeResponse = await finalizeOrder(
+              checkoutRequestId,
+              order.type,
+              orderData
+            );
+            
+            if (finalizeResponse.success) {
+              // Navigate to success page with order details
+              navigate(`/payment-success?type=${order.type}&id=${finalizeResponse.orderId}&title=${encodeURIComponent(order.title)}`);
+            } else {
+              throw new Error("Failed to finalize order");
+            }
+          }
+        } else if (statusResponse.errorCode === "500.001.1001") {
+          // Transaction still in process, continue checking
+          setStatusCheckAttempts(prev => prev + 1);
+          
+          // After 10 attempts (about 50 seconds), give up
+          if (statusCheckAttempts >= 10) {
+            clearInterval(statusCheckInterval as number);
+            setPaymentStatus('failed');
+            toast({
+              title: "Payment timeout",
+              description: "We couldn't confirm your payment. Please try again or contact support.",
+              variant: "destructive"
+            });
+          }
+        } else {
+          // Payment failed or cancelled
+          clearInterval(statusCheckInterval as number);
+          setPaymentStatus('failed');
+          toast({
+            title: "Payment failed",
+            description: statusResponse.ResultDesc || "There was an issue with your payment. Please try again.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error);
+        
+        // After 10 attempts, give up
+        if (statusCheckAttempts >= 10) {
+          clearInterval(statusCheckInterval as number);
+          setPaymentStatus('failed');
+          toast({
+            title: "Error checking payment",
+            description: "We couldn't verify your payment status. Please check your M-Pesa messages.",
+            variant: "destructive"
+          });
+        }
+      } finally {
+        setCheckingStatus(false);
+      }
+    };
+    
+    if (checkoutRequestId && paymentStatus === 'processing') {
+      // Check status immediately
+      checkStatus();
+      
+      // Then check every 5 seconds
+      statusCheckInterval = window.setInterval(checkStatus, 5000);
+    }
+    
+    return () => {
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+      }
+    };
+  }, [checkoutRequestId, paymentStatus, checkingStatus, statusCheckAttempts, order, currentUser, navigate, phoneNumber, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,31 +208,12 @@ const Payment = () => {
       }
       
       setCheckoutRequestId(response.CheckoutRequestID);
+      setStatusCheckAttempts(0);
       
       toast({
         title: "Payment initiated",
         description: "Please check your phone and enter your M-Pesa PIN to complete the payment",
       });
-      
-      // Simulate waiting for the transaction to complete
-      // In a real app, you would poll the server to check the transaction status
-      setTimeout(() => {
-        // Clear the pending order
-        localStorage.removeItem('pendingOrder');
-        
-        setIsSubmitting(false);
-        setPaymentStatus('success');
-        
-        toast({
-          title: "Payment successful",
-          description: "Your order has been processed successfully!",
-        });
-        
-        // In a real app, you might want to delay this navigation
-        setTimeout(() => {
-          navigate('/profile');
-        }, 2000);
-      }, 5000);
       
     } catch (error) {
       console.error('Payment error:', error);
@@ -139,6 +226,13 @@ const Payment = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleTryAgain = () => {
+    setPaymentStatus('pending');
+    setIsSubmitting(false);
+    setCheckoutRequestId('');
+    setStatusCheckAttempts(0);
   };
 
   if (!order) {
@@ -198,15 +292,12 @@ const Payment = () => {
                 </div>
               </div>
               
-              {paymentStatus === 'success' ? (
+              {paymentStatus === 'processing' ? (
                 <div className="text-center py-8">
-                  <div className="bg-green-100 text-green-800 p-4 rounded-lg mb-4">
-                    <h3 className="font-bold text-lg">Payment Successful!</h3>
-                    <p>Your order has been processed successfully.</p>
-                  </div>
-                  <Button onClick={() => navigate('/profile')} className="mt-4">
-                    View My Orders
-                  </Button>
+                  <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-gold" />
+                  <h3 className="font-bold text-lg mb-2">Payment Processing</h3>
+                  <p className="mb-2">Please check your phone and enter your M-Pesa PIN.</p>
+                  <p className="text-sm text-gray-500">We're waiting for confirmation from M-Pesa...</p>
                 </div>
               ) : paymentStatus === 'failed' ? (
                 <div className="text-center py-8">
@@ -214,7 +305,7 @@ const Payment = () => {
                     <h3 className="font-bold text-lg">Payment Failed</h3>
                     <p>Something went wrong with your payment. Please try again.</p>
                   </div>
-                  <Button onClick={() => setPaymentStatus('pending')} className="mt-4">
+                  <Button onClick={handleTryAgain} className="mt-4">
                     Try Again
                   </Button>
                 </div>

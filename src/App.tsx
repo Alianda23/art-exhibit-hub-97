@@ -20,6 +20,7 @@ import ExhibitionDetail from "./pages/ExhibitionDetail";
 import ArtworkCheckout from "./pages/ArtworkCheckout";
 import ExhibitionCheckout from "./pages/ExhibitionCheckout";
 import Payment from "./pages/Payment";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import Contact from "./pages/Contact";
@@ -59,6 +60,7 @@ const App = () => {
                   <Route path="/checkout/artwork/:id" element={<ArtworkCheckout />} />
                   <Route path="/checkout/exhibition/:id" element={<ExhibitionCheckout />} />
                   <Route path="/payment" element={<Payment />} />
+                  <Route path="/payment-success" element={<PaymentSuccess />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/admin/messages" element={<AdminMessages />} />
