@@ -56,6 +56,14 @@ interface ExhibitionData {
   status: 'upcoming' | 'ongoing' | 'past';
 }
 
+// Interface for contact message
+interface ContactMessage {
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
+}
+
 // Helper function to store auth data
 const storeAuthData = (data: AuthResponse, isAdmin: boolean) => {
   if (data.token) {
@@ -317,5 +325,43 @@ export const updateExhibition = async (id: string, exhibitionData: ExhibitionDat
 export const deleteExhibition = async (id: string) => {
   return await authFetch(`/exhibitions/${id}`, {
     method: 'DELETE',
+  });
+};
+
+// Submit a contact message
+export const submitContactMessage = async (messageData: ContactMessage) => {
+  try {
+    const response = await fetch(`${API_URL}/contact`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(messageData),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to submit contact message');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error submitting contact message:', error);
+    throw error;
+  }
+};
+
+// Get all contact messages (admin only)
+export const getAllContactMessages = async () => {
+  return await authFetch('/messages');
+};
+
+// Update message status (admin only)
+export const updateMessageStatus = async (id: string, status: 'new' | 'read' | 'replied') => {
+  return await authFetch(`/messages/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status }),
   });
 };

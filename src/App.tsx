@@ -22,6 +22,7 @@ import Payment from "./pages/Payment";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import Contact from "./pages/Contact";
+import AdminMessages from "./pages/AdminMessages";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -53,6 +54,7 @@ const App = () => (
                 <Route path="/payment" element={<Payment />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/admin/messages" element={<AdminMessages />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

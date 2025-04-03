@@ -14,6 +14,7 @@ from database import initialize_database
 from auth import register_user, login_user, login_admin, create_admin
 from artwork import get_all_artworks, get_artwork, create_artwork, update_artwork, delete_artwork
 from exhibition import get_all_exhibitions, get_exhibition, create_exhibition, update_exhibition, delete_exhibition
+from contact import create_contact_message, get_messages, update_message
 
 # Set CORS headers for the server
 def set_cors_headers(handler):
@@ -63,6 +64,19 @@ class RequestHandler(BaseHTTPRequestHandler):
             exhibition_id = path.split('/')[2]
             response = get_exhibition(exhibition_id)
             self._set_response()
+            self.wfile.write(json.dumps(response).encode())
+            return
+        
+        # Get all contact messages (admin only)
+        elif path == '/messages':
+            auth_header = self.headers.get('Authorization', '')
+            response = get_messages(auth_header)
+            
+            if "error" in response and response["error"] == "Unauthorized access":
+                self._set_response(403)
+            else:
+                self._set_response()
+            
             self.wfile.write(json.dumps(response).encode())
             return
         
@@ -176,6 +190,18 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(response).encode())
             return
         
+        # Create a new contact message
+        elif self.path == '/contact':
+            response = create_contact_message(data)
+            
+            if "error" in response:
+                self._set_response(400)
+            else:
+                self._set_response(201)
+            
+            self.wfile.write(json.dumps(response).encode())
+            return
+        
         # Handle 404 Not Found
         else:
             self._set_response(404)
@@ -221,6 +247,25 @@ class RequestHandler(BaseHTTPRequestHandler):
                 if response["error"] == "Unauthorized access":
                     self._set_response(403)
                 elif response["error"] == "Exhibition not found":
+                    self._set_response(404)
+                else:
+                    self._set_response(400)
+            else:
+                self._set_response()
+            
+            self.wfile.write(json.dumps(response).encode())
+            return
+        
+        # Update a message status
+        elif self.path.startswith('/messages/') and len(self.path.split('/')) == 3:
+            message_id = self.path.split('/')[2]
+            auth_header = self.headers.get('Authorization', '')
+            response = update_message(auth_header, message_id, data)
+            
+            if "error" in response:
+                if response["error"] == "Unauthorized access":
+                    self._set_response(403)
+                elif response["error"] == "Message not found":
                     self._set_response(404)
                 else:
                     self._set_response(400)
