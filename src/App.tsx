@@ -18,6 +18,7 @@ import ArtworkDetail from "./pages/ArtworkDetail";
 import ExhibitionDetail from "./pages/ExhibitionDetail";
 import ArtworkCheckout from "./pages/ArtworkCheckout";
 import ExhibitionCheckout from "./pages/ExhibitionCheckout";
+import Payment from "./pages/Payment";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import Contact from "./pages/Contact";
@@ -49,6 +50,7 @@ const App = () => (
                 <Route path="/exhibitions/:id" element={<ExhibitionDetail />} />
                 <Route path="/checkout/artwork/:id" element={<ArtworkCheckout />} />
                 <Route path="/checkout/exhibition/:id" element={<ExhibitionCheckout />} />
+                <Route path="/payment" element={<Payment />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/contact" element={<Contact />} />

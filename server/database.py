@@ -88,11 +88,53 @@ def initialize_database():
     );
     """
     
+    # Create artwork orders table
+    artwork_orders_table = """
+    CREATE TABLE IF NOT EXISTS artwork_orders (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        artwork_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(20) NOT NULL,
+        delivery_address TEXT NOT NULL,
+        payment_method ENUM('mpesa') NOT NULL,
+        payment_status ENUM('pending', 'completed', 'failed') NOT NULL DEFAULT 'pending',
+        mpesa_transaction_id VARCHAR(50),
+        order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        total_amount DECIMAL(10, 2) NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (artwork_id) REFERENCES artworks(id) ON DELETE CASCADE
+    );
+    """
+    
+    # Create exhibition bookings table
+    exhibition_bookings_table = """
+    CREATE TABLE IF NOT EXISTS exhibition_bookings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        exhibition_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(20) NOT NULL,
+        slots INT NOT NULL,
+        payment_method ENUM('mpesa') NOT NULL,
+        payment_status ENUM('pending', 'completed', 'failed') NOT NULL DEFAULT 'pending',
+        mpesa_transaction_id VARCHAR(50),
+        booking_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        total_amount DECIMAL(10, 2) NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (exhibition_id) REFERENCES exhibitions(id) ON DELETE CASCADE
+    );
+    """
+    
     try:
         cursor.execute(users_table)
         cursor.execute(admins_table)
         cursor.execute(artworks_table)
         cursor.execute(exhibitions_table)
+        cursor.execute(artwork_orders_table)
+        cursor.execute(exhibition_bookings_table)
         connection.commit()
         print("Database initialized successfully")
         return True

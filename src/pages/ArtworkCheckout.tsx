@@ -50,10 +50,10 @@ const ArtworkCheckout = () => {
     e.preventDefault();
     
     // Validate form
-    if (!formData.name || !formData.email || !formData.phone || !formData.deliveryAddress) {
+    if (!formData.deliveryAddress) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in the delivery address",
         variant: "destructive"
       });
       return;
@@ -61,15 +61,21 @@ const ArtworkCheckout = () => {
     
     setIsSubmitting(true);
     
-    // Simulate payment processing
-    setTimeout(() => {
-      toast({
-        title: "Success",
-        description: "Your order has been processed successfully!"
-      });
-      setIsSubmitting(false);
-      navigate('/profile');
-    }, 2000);
+    // Store order details in localStorage for the payment page
+    const orderDetails = {
+      type: 'artwork',
+      itemId: artwork.id,
+      title: artwork.title,
+      price: artwork.price,
+      deliveryFee: 1000,
+      totalAmount: artwork.price + 1000,
+      ...formData
+    };
+    
+    localStorage.setItem('pendingOrder', JSON.stringify(orderDetails));
+    
+    // Navigate to payment page
+    navigate(`/payment`);
   };
 
   return (
@@ -77,7 +83,7 @@ const ArtworkCheckout = () => {
       <div className="container mx-auto max-w-4xl">
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-6 md:p-8">
-            <h1 className="font-serif text-3xl font-bold mb-8 text-center">Artwork Checkout</h1>
+            <h1 className="font-serif text-3xl font-bold mb-8 text-center">Delivery Details</h1>
             
             <div className="grid md:grid-cols-[1fr_2fr] gap-8 mb-8">
               <div>
@@ -118,38 +124,28 @@ const ArtworkCheckout = () => {
                 <form onSubmit={handleSubmit}>
                   <div className="space-y-6">
                     <div>
-                      <Label htmlFor="name">Full Name *</Label>
+                      <Label htmlFor="name">Full Name</Label>
                       <Input
                         id="name"
                         name="name"
                         value={formData.name}
-                        onChange={handleInputChange}
-                        required
+                        readOnly
+                        className="bg-gray-100"
                       />
+                      <p className="text-sm text-gray-500 mt-1">Name from your account</p>
                     </div>
                     
                     <div>
-                      <Label htmlFor="email">Email Address *</Label>
+                      <Label htmlFor="email">Email Address</Label>
                       <Input
                         id="email"
                         name="email"
                         type="email"
                         value={formData.email}
-                        onChange={handleInputChange}
-                        required
+                        readOnly
+                        className="bg-gray-100"
                       />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="phone">Phone Number (for M-Pesa) *</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        placeholder="+254..."
-                        required
-                      />
+                      <p className="text-sm text-gray-500 mt-1">Email from your account</p>
                     </div>
                     
                     <div>
@@ -161,6 +157,7 @@ const ArtworkCheckout = () => {
                         onChange={handleInputChange}
                         rows={3}
                         required
+                        placeholder="Enter your full delivery address"
                       />
                     </div>
                     
@@ -170,11 +167,8 @@ const ArtworkCheckout = () => {
                         className="w-full bg-gold hover:bg-gold-dark text-white py-6 text-lg"
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? "Processing..." : "Pay with M-Pesa"}
+                        {isSubmitting ? "Processing..." : "Continue to Payment"}
                       </Button>
-                      <p className="text-sm text-gray-500 text-center mt-2">
-                        You will receive an M-Pesa prompt on your phone to complete payment
-                      </p>
                     </div>
                   </div>
                 </form>
