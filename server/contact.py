@@ -27,12 +27,15 @@ def create_contact_message(data):
     phone = data.get('phone', '')
     message = data.get('message')
     
+    # Support for chat messages
+    source = data.get('source', 'contact_form')  # New field to track where messages come from
+    
     # Validate required fields
     if not name or not email or not message:
         return {"error": "Missing required fields"}
     
     # Save the message
-    result = save_contact_message(name, email, phone, message)
+    result = save_contact_message(name, email, phone, message, source)
     
     return result
 
@@ -57,3 +60,12 @@ def update_message(auth_header, message_id, data):
     result = update_message_status(message_id, status)
     
     return result
+
+# WhatsApp message handling would need additional server-side code
+# This would typically involve setting up a webhook to receive messages from WhatsApp API
+# and then responding to them programmatically
+def handle_whatsapp_message(data):
+    """Handle incoming WhatsApp message"""
+    # This function would be called by a webhook receiver for WhatsApp
+    # For now, it's a placeholder for future implementation
+    return {"success": True, "message": "WhatsApp message received"}

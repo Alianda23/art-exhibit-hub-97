@@ -1,4 +1,3 @@
-
 import mysql.connector
 from mysql.connector import Error
 import json
@@ -165,7 +164,7 @@ def dict_from_row(row, cursor):
     return {cursor.column_names[i]: value for i, value in enumerate(row)}
 
 # Contact message functions
-def save_contact_message(name, email, phone, message):
+def save_contact_message(name, email, phone, message, source='contact_form'):
     """Save a new contact message"""
     connection = get_db_connection()
     if connection is None:
@@ -174,12 +173,20 @@ def save_contact_message(name, email, phone, message):
     try:
         cursor = connection.cursor()
         
+        # Check if contact_messages table has source column
+        cursor.execute("SHOW COLUMNS FROM contact_messages LIKE 'source'")
+        source_exists = cursor.fetchone()
+        
+        if not source_exists:
+            # Add source column if it doesn't exist
+            cursor.execute("ALTER TABLE contact_messages ADD COLUMN source VARCHAR(50) DEFAULT 'contact_form'")
+        
         # Insert the message into the database
         query = """
-        INSERT INTO contact_messages (name, email, phone, message)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO contact_messages (name, email, phone, message, source)
+        VALUES (%s, %s, %s, %s, %s)
         """
-        cursor.execute(query, (name, email, phone, message))
+        cursor.execute(query, (name, email, phone, message, source))
         connection.commit()
         
         return {"success": True, "message_id": cursor.lastrowid}
