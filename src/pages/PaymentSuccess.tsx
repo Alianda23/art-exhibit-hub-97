@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, Printer, FileText, Home, Loader2 } from 'lucide-react';
+import { CheckCircle, Printer, FileText, Home, Loader2, Mail } from 'lucide-react';
 import { generateExhibitionTicket } from '@/utils/mpesa';
 
 const PaymentSuccess = () => {
@@ -80,11 +80,18 @@ const PaymentSuccess = () => {
                   : `Your booking for "${title}" has been confirmed.`}
               </p>
               
-              <p className="text-sm text-gray-600 mb-8">
+              <p className="text-sm text-gray-600 mb-2 flex items-center justify-center">
+                <Mail className="w-4 h-4 mr-2" />
                 {orderType === 'artwork'
                   ? "We'll email you with the delivery details shortly."
-                  : "An email with your ticket has been sent to your registered email address."}
+                  : "A confirmation email with your ticket has been sent to your registered email address."}
               </p>
+              
+              {orderType === 'exhibition' && (
+                <p className="text-sm text-gray-600 mb-8">
+                  Please check your email and save the ticket for your records.
+                </p>
+              )}
               
               <div className="space-y-4 w-full">
                 {orderType === 'exhibition' && (

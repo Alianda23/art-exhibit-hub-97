@@ -1,191 +1,564 @@
 
-import base64
-import datetime
 import json
-import requests
+import uuid
+import datetime
+from database import get_db_connection
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 import os
-from typing import Dict, Any
 
-# Get the credentials
-CONSUMER_KEY = "sMwMwGZ8oOiSkNrUIrPbcCeWIO8UiQ3SV4CyX739uAyZVs1F"
-CONSUMER_SECRET = "A3Hs5zRY3nDCn7XpxPuc1iAKpfy6UDdetiCalIAfuAIpgTROI5yCqqOewDfThh2o"
-
-# M-Pesa API URLs - these would typically be different for sandbox and production
-# Using sandbox URLs for demonstration
-MPESA_AUTH_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
-MPESA_STK_PUSH_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
-MPESA_QUERY_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query"
-
-# M-Pesa Shortcode and Passkey - these would need to be provided by Safaricom
-# Using placeholder values for demonstration
-MPESA_SHORTCODE = "174379"  # Example Sandbox shortcode
-MPESA_PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"  # Example Sandbox passkey
-MPESA_CALLBACK_URL = "https://example.com/callback"  # This should be your server's callback URL
-
-# Helper function to get M-Pesa access token
-def get_mpesa_access_token() -> str:
-    """Get M-Pesa access token"""
-    try:
-        # Create the auth header
-        auth_string = f"{CONSUMER_KEY}:{CONSUMER_SECRET}"
-        auth_bytes = auth_string.encode("utf-8")
-        auth_base64 = base64.b64encode(auth_bytes).decode("utf-8")
-        
-        # Make the request
-        headers = {
-            "Authorization": f"Basic {auth_base64}"
-        }
-        
-        response = requests.get(MPESA_AUTH_URL, headers=headers)
-        data = response.json()
-        
-        # Check if the request was successful
-        if "access_token" in data:
-            return data["access_token"]
-        else:
-            print("Error getting M-Pesa access token:", data)
-            return ""
-    except Exception as e:
-        print("Exception getting M-Pesa access token:", e)
-        return ""
-
-# Helper function to generate the M-Pesa timestamp
-def get_mpesa_timestamp() -> str:
-    """Generate M-Pesa timestamp (YYYYMMDDHHmmss)"""
-    return datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
-# Helper function to generate the M-Pesa password
-def get_mpesa_password(timestamp: str) -> str:
-    """Generate M-Pesa password for STK Push (base64 of shortcode+passkey+timestamp)"""
-    password_string = f"{MPESA_SHORTCODE}{MPESA_PASSKEY}{timestamp}"
-    password_bytes = password_string.encode("utf-8")
-    password_base64 = base64.b64encode(password_bytes).decode("utf-8")
-    return password_base64
-
-# Function to initiate STK Push
-def initiate_stk_push(phone_number: str, amount: int, account_reference: str, transaction_desc: str) -> Dict[str, Any]:
-    """Initiate M-Pesa STK Push"""
-    try:
-        # Get access token
-        access_token = get_mpesa_access_token()
-        if not access_token:
-            return {"error": "Failed to get M-Pesa access token"}
-        
-        # Generate timestamp and password
-        timestamp = get_mpesa_timestamp()
-        password = get_mpesa_password(timestamp)
-        
-        # Prepare the request payload
-        payload = {
-            "BusinessShortCode": MPESA_SHORTCODE,
-            "Password": password,
-            "Timestamp": timestamp,
-            "TransactionType": "CustomerPayBillOnline",
-            "Amount": amount,
-            "PartyA": phone_number,
-            "PartyB": MPESA_SHORTCODE,
-            "PhoneNumber": phone_number,
-            "CallBackURL": MPESA_CALLBACK_URL,
-            "AccountReference": account_reference,
-            "TransactionDesc": transaction_desc
-        }
-        
-        # Make the request
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
-        
-        response = requests.post(MPESA_STK_PUSH_URL, json=payload, headers=headers)
-        data = response.json()
-        
-        # Check if the request was successful
-        if "ResponseCode" in data and data["ResponseCode"] == "0":
-            return data
-        else:
-            print("Error initiating M-Pesa STK Push:", data)
-            return {"error": "Failed to initiate M-Pesa payment", "details": data}
-    except Exception as e:
-        print("Exception initiating M-Pesa STK Push:", e)
-        return {"error": f"Exception: {str(e)}"}
-
-# Function to check transaction status
-def check_transaction_status(checkout_request_id: str) -> Dict[str, Any]:
-    """Check M-Pesa transaction status"""
-    try:
-        # Get access token
-        access_token = get_mpesa_access_token()
-        if not access_token:
-            return {"error": "Failed to get M-Pesa access token"}
-        
-        # Generate timestamp and password
-        timestamp = get_mpesa_timestamp()
-        password = get_mpesa_password(timestamp)
-        
-        # Prepare the request payload
-        payload = {
-            "BusinessShortCode": MPESA_SHORTCODE,
-            "Password": password,
-            "Timestamp": timestamp,
-            "CheckoutRequestID": checkout_request_id
-        }
-        
-        # Make the request
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
-        
-        response = requests.post(MPESA_QUERY_URL, json=payload, headers=headers)
-        data = response.json()
-        
-        return data
-    except Exception as e:
-        print("Exception checking M-Pesa transaction status:", e)
-        return {"error": f"Exception: {str(e)}"}
-
-# Function to handle STK push request from the server
+# M-Pesa API simulation functions
 def handle_stk_push_request(data):
-    """Handle STK push request from the client"""
+    """Simulate M-Pesa STK push request"""
     try:
-        phone_number = data.get("phoneNumber")
-        amount = data.get("amount")
-        order_type = data.get("orderType")
-        order_id = data.get("orderId")
-        account_reference = data.get("accountReference")
+        # Extract data
+        amount = data.get('amount')
+        phone = data.get('phone')
+        type = data.get('type')  # 'artwork' or 'exhibition'
+        item_id = data.get('itemId')
+        user_id = data.get('userId')
         
-        # Validate required fields
-        if not all([phone_number, amount, order_type, order_id, account_reference]):
-            return {"error": "Missing required fields for M-Pesa payment"}
+        if not all([amount, phone, type, item_id, user_id]):
+            return {"error": "Missing required fields"}
         
-        # Format phone number if needed (remove + and ensure it starts with 254)
-        if phone_number.startswith("+"):
-            phone_number = phone_number[1:]
-        if phone_number.startswith("0"):
-            phone_number = "254" + phone_number[1:]
+        # Generate a checkout request ID
+        checkout_request_id = str(uuid.uuid4())
         
-        # Generate transaction description
-        transaction_desc = f"Payment for {order_type} #{order_id}"
+        # In a real system, this would make an API call to M-Pesa
+        # For our simulation, we'll just store the pending transaction
+        connection = get_db_connection()
+        if connection is None:
+            return {"error": "Database connection failed"}
         
-        # Initiate STK Push
-        result = initiate_stk_push(phone_number, amount, account_reference, transaction_desc)
+        cursor = connection.cursor()
         
-        return result
+        try:
+            # Store transaction details
+            query = """
+            INSERT INTO mpesa_transactions
+            (checkout_request_id, phone, amount, type, item_id, user_id, status, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(query, (
+                checkout_request_id,
+                phone,
+                amount,
+                type,
+                item_id,
+                user_id,
+                'pending',
+                datetime.datetime.now()
+            ))
+            connection.commit()
+            
+            return {
+                "success": True,
+                "checkoutRequestId": checkout_request_id,
+                "message": "STK push request sent successfully"
+            }
+        except Exception as e:
+            print(f"Error handling STK push: {e}")
+            return {"error": str(e)}
+        finally:
+            if connection.is_connected():
+                cursor.close()
+                connection.close()
     except Exception as e:
-        print("Exception handling STK push request:", e)
-        return {"error": f"Exception: {str(e)}"}
+        print(f"Error in STK push: {e}")
+        return {"error": str(e)}
 
-# Function to handle callback from M-Pesa
 def handle_mpesa_callback(data):
-    """Handle callback from M-Pesa"""
+    """Simulate M-Pesa callback"""
     try:
-        # Log the callback data
-        print("M-Pesa callback data:", json.dumps(data, indent=2))
+        # Extract data
+        checkout_request_id = data.get('checkoutRequestId')
+        payment_status = data.get('status')  # 'success' or 'failed'
         
-        # Process the callback data
-        # In a production system, you would update your database with the payment status
+        if not all([checkout_request_id, payment_status]):
+            return {"error": "Missing required fields"}
         
-        return {"success": True}
+        # Get the transaction details
+        connection = get_db_connection()
+        if connection is None:
+            return {"error": "Database connection failed"}
+        
+        cursor = connection.cursor()
+        
+        try:
+            # Update transaction status
+            query = """
+            UPDATE mpesa_transactions
+            SET status = %s, updated_at = %s
+            WHERE checkout_request_id = %s
+            """
+            cursor.execute(query, (
+                payment_status,
+                datetime.datetime.now(),
+                checkout_request_id
+            ))
+            
+            # If payment is successful, create order or booking
+            if payment_status == 'success':
+                # Get transaction details
+                query = """
+                SELECT type, item_id, user_id, amount, phone
+                FROM mpesa_transactions
+                WHERE checkout_request_id = %s
+                """
+                cursor.execute(query, (checkout_request_id,))
+                result = cursor.fetchone()
+                
+                if result:
+                    type = result[0]
+                    item_id = result[1]
+                    user_id = result[2]
+                    amount = result[3]
+                    phone = result[4]
+                    
+                    # Get user details
+                    query = """
+                    SELECT name, email
+                    FROM users
+                    WHERE id = %s
+                    """
+                    cursor.execute(query, (user_id,))
+                    user_result = cursor.fetchone()
+                    
+                    if user_result:
+                        user_name = user_result[0]
+                        user_email = user_result[1]
+                        
+                        if type == 'artwork':
+                            # Create artwork order
+                            query = """
+                            INSERT INTO artwork_orders
+                            (user_id, artwork_id, name, email, phone, delivery_address, 
+                             payment_method, payment_status, mpesa_transaction_id, total_amount)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """
+                            
+                            # Get additional order details from pending_order table
+                            delivery_address_query = """
+                            SELECT delivery_address
+                            FROM pending_orders
+                            WHERE user_id = %s AND type = 'artwork' AND item_id = %s
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                            """
+                            cursor.execute(delivery_address_query, (user_id, item_id))
+                            pending_result = cursor.fetchone()
+                            delivery_address = pending_result[0] if pending_result else "Not provided"
+                            
+                            cursor.execute(query, (
+                                user_id,
+                                item_id,
+                                user_name,
+                                user_email,
+                                phone,
+                                delivery_address,
+                                'mpesa',
+                                'completed',
+                                checkout_request_id,
+                                amount
+                            ))
+                            
+                            # Update artwork status to sold
+                            query = """
+                            UPDATE artworks
+                            SET status = 'sold'
+                            WHERE id = %s
+                            """
+                            cursor.execute(query, (item_id,))
+                        
+                        elif type == 'exhibition':
+                            # Create exhibition booking
+                            query = """
+                            INSERT INTO exhibition_bookings
+                            (user_id, exhibition_id, name, email, phone, slots, 
+                             payment_method, payment_status, mpesa_transaction_id, total_amount)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """
+                            
+                            # Get slot count from pending_order table
+                            slots_query = """
+                            SELECT slots
+                            FROM pending_orders
+                            WHERE user_id = %s AND type = 'exhibition' AND item_id = %s
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                            """
+                            cursor.execute(slots_query, (user_id, item_id))
+                            pending_result = cursor.fetchone()
+                            slots = pending_result[0] if pending_result else 1
+                            
+                            cursor.execute(query, (
+                                user_id,
+                                item_id,
+                                user_name,
+                                user_email,
+                                phone,
+                                slots,
+                                'mpesa',
+                                'completed',
+                                checkout_request_id,
+                                amount
+                            ))
+                            
+                            # Update exhibition available slots
+                            query = """
+                            UPDATE exhibitions
+                            SET available_slots = available_slots - %s
+                            WHERE id = %s
+                            """
+                            cursor.execute(query, (slots, item_id))
+                            
+                            # Get booking ID for ticket generation
+                            booking_id_query = """
+                            SELECT id FROM exhibition_bookings
+                            WHERE mpesa_transaction_id = %s
+                            """
+                            cursor.execute(booking_id_query, (checkout_request_id,))
+                            booking_result = cursor.fetchone()
+                            
+                            if booking_result:
+                                booking_id = booking_result[0]
+                                
+                                # Get exhibition details
+                                exhibition_query = """
+                                SELECT title, location, start_date, end_date
+                                FROM exhibitions
+                                WHERE id = %s
+                                """
+                                cursor.execute(exhibition_query, (item_id,))
+                                exhibition_result = cursor.fetchone()
+                                
+                                if exhibition_result:
+                                    exhibition_title = exhibition_result[0]
+                                    exhibition_location = exhibition_result[1]
+                                    exhibition_start_date = exhibition_result[2]
+                                    exhibition_end_date = exhibition_result[3]
+                                    
+                                    # Generate ticket URL
+                                    ticket_id = f"TKT-{booking_id}-{uuid.uuid4().hex[:8]}"
+                                    ticket_url = f"/tickets/{ticket_id}.pdf"
+                                    
+                                    # Update booking with ticket ID
+                                    query = """
+                                    UPDATE exhibition_bookings
+                                    SET ticket_id = %s
+                                    WHERE id = %s
+                                    """
+                                    cursor.execute(query, (ticket_id, booking_id))
+                                    
+                                    # Send email with ticket
+                                    send_ticket_email(
+                                        user_email,
+                                        user_name,
+                                        exhibition_title,
+                                        exhibition_location,
+                                        exhibition_start_date,
+                                        exhibition_end_date,
+                                        slots,
+                                        ticket_id,
+                                        booking_id
+                                    )
+            
+            connection.commit()
+            
+            return {
+                "success": True,
+                "message": "Callback processed successfully"
+            }
+        except Exception as e:
+            print(f"Error handling callback: {e}")
+            return {"error": str(e)}
+        finally:
+            if connection.is_connected():
+                cursor.close()
+                connection.close()
     except Exception as e:
-        print("Exception handling M-Pesa callback:", e)
-        return {"error": f"Exception: {str(e)}"}
+        print(f"Error in callback: {e}")
+        return {"error": str(e)}
+
+def check_transaction_status(checkout_request_id):
+    """Check the status of a transaction"""
+    try:
+        connection = get_db_connection()
+        if connection is None:
+            return {"error": "Database connection failed"}
+        
+        cursor = connection.cursor()
+        
+        query = """
+        SELECT status
+        FROM mpesa_transactions
+        WHERE checkout_request_id = %s
+        """
+        cursor.execute(query, (checkout_request_id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            return {"error": "Transaction not found"}
+        
+        status = result[0]
+        
+        # For simulation purposes, we'll randomly complete pending transactions
+        if status == 'pending':
+            import random
+            if random.random() > 0.3:  # 70% chance of success
+                # Update to success
+                update_query = """
+                UPDATE mpesa_transactions
+                SET status = 'success', updated_at = %s
+                WHERE checkout_request_id = %s
+                """
+                cursor.execute(update_query, (datetime.datetime.now(), checkout_request_id))
+                connection.commit()
+                
+                # Process the successful payment (create order/booking)
+                handle_mpesa_callback({"checkoutRequestId": checkout_request_id, "status": "success"})
+                
+                status = 'success'
+        
+        return {
+            "status": status,
+            "checkoutRequestId": checkout_request_id
+        }
+    except Exception as e:
+        print(f"Error checking transaction status: {e}")
+        return {"error": str(e)}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def generate_exhibition_ticket(booking_id):
+    """Generate a ticket for an exhibition booking"""
+    try:
+        connection = get_db_connection()
+        if connection is None:
+            return {"error": "Database connection failed"}
+        
+        cursor = connection.cursor()
+        
+        # Get booking details
+        query = """
+        SELECT eb.id, eb.name, eb.email, eb.phone, eb.slots, eb.ticket_id,
+               e.title, e.location, e.start_date, e.end_date
+        FROM exhibition_bookings eb
+        JOIN exhibitions e ON eb.exhibition_id = e.id
+        WHERE eb.id = %s
+        """
+        cursor.execute(query, (booking_id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            return {"error": "Booking not found"}
+        
+        booking = {
+            "id": result[0],
+            "name": result[1],
+            "email": result[2],
+            "phone": result[3],
+            "slots": result[4],
+            "ticketId": result[5],
+            "exhibitionTitle": result[6],
+            "location": result[7],
+            "startDate": result[8].isoformat(),
+            "endDate": result[9].isoformat()
+        }
+        
+        # Generate a ticket URL (in a real system, this would generate a PDF)
+        if not booking["ticketId"]:
+            ticket_id = f"TKT-{booking['id']}-{uuid.uuid4().hex[:8]}"
+            
+            # Update booking with ticket ID
+            query = """
+            UPDATE exhibition_bookings
+            SET ticket_id = %s
+            WHERE id = %s
+            """
+            cursor.execute(query, (ticket_id, booking_id))
+            connection.commit()
+            
+            booking["ticketId"] = ticket_id
+        
+        # Generate ticket URL
+        ticket_url = f"/tickets/{booking['ticketId']}.pdf"
+        
+        return {
+            "booking": booking,
+            "ticketUrl": ticket_url
+        }
+    except Exception as e:
+        print(f"Error generating ticket: {e}")
+        return {"error": str(e)}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def send_ticket_email(email, name, exhibition_title, location, start_date, end_date, slots, ticket_id, booking_id):
+    """Send an email with the ticket attached"""
+    try:
+        # For simulation purposes, we'll just log the email
+        print(f"Sending ticket email to {email}")
+        
+        # In a real implementation, you would:
+        # 1. Generate a PDF ticket
+        # 2. Set up an SMTP connection
+        # 3. Create and send the email with the PDF attached
+        
+        # Email content
+        subject = f"Your Ticket for {exhibition_title}"
+        body = f"""
+        Hello {name},
+        
+        Thank you for booking tickets for {exhibition_title}!
+        
+        Booking Details:
+        - Exhibition: {exhibition_title}
+        - Location: {location}
+        - Date: {start_date.strftime('%B %d, %Y')} to {end_date.strftime('%B %d, %Y')}
+        - Number of Tickets: {slots}
+        - Booking Reference: {booking_id}
+        - Ticket ID: {ticket_id}
+        
+        Your ticket is attached to this email. Please print it or show it on your mobile device when you arrive at the exhibition.
+        
+        We look forward to seeing you!
+        
+        Best regards,
+        The AfriArt Team
+        """
+        
+        # For demonstration, we'll just log that the email would be sent
+        print("Email content:")
+        print(f"Subject: {subject}")
+        print(f"Body: {body}")
+        print(f"Ticket would be attached as PDF for: {ticket_id}")
+        
+        # In a real application with a mail server configured, you would:
+        # msg = MIMEMultipart()
+        # msg['From'] = 'your-email@example.com'
+        # msg['To'] = email
+        # msg['Subject'] = subject
+        # msg.attach(MIMEText(body, 'plain'))
+        # 
+        # # Attach the PDF ticket
+        # with open(f"tickets/{ticket_id}.pdf", "rb") as f:
+        #     attachment = MIMEApplication(f.read(), _subtype="pdf")
+        #     attachment.add_header('Content-Disposition', 'attachment', filename=f"{ticket_id}.pdf")
+        #     msg.attach(attachment)
+        # 
+        # # Send the email
+        # server = smtplib.SMTP('smtp.example.com', 587)
+        # server.starttls()
+        # server.login('your-email@example.com', 'your-password')
+        # server.send_message(msg)
+        # server.quit()
+        
+        return True
+    except Exception as e:
+        print(f"Error sending ticket email: {e}")
+        return False
+
+def get_all_booking_tickets():
+    """Get all booking tickets for admin"""
+    try:
+        connection = get_db_connection()
+        if connection is None:
+            return {"error": "Database connection failed"}
+        
+        cursor = connection.cursor()
+        
+        # Get all bookings with ticket IDs
+        query = """
+        SELECT eb.id, eb.name, eb.email, eb.phone, eb.slots, eb.ticket_id, eb.booking_date,
+               e.title, e.location, e.start_date, e.end_date
+        FROM exhibition_bookings eb
+        JOIN exhibitions e ON eb.exhibition_id = e.id
+        WHERE eb.payment_status = 'completed'
+        ORDER BY eb.booking_date DESC
+        """
+        cursor.execute(query)
+        results = cursor.fetchall()
+        
+        bookings = []
+        for result in results:
+            booking = {
+                "id": result[0],
+                "name": result[1],
+                "email": result[2],
+                "phone": result[3],
+                "slots": result[4],
+                "ticketId": result[5],
+                "bookingDate": result[6].isoformat() if result[6] else None,
+                "exhibitionTitle": result[7],
+                "location": result[8],
+                "startDate": result[9].isoformat() if result[9] else None,
+                "endDate": result[10].isoformat() if result[10] else None,
+                "ticketUrl": f"/tickets/{result[5]}.pdf" if result[5] else None
+            }
+            
+            bookings.append(booking)
+        
+        return {"bookings": bookings}
+    except Exception as e:
+        print(f"Error getting booking tickets: {e}")
+        return {"error": str(e)}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def get_user_booking_tickets(user_id):
+    """Get booking tickets for a specific user"""
+    try:
+        connection = get_db_connection()
+        if connection is None:
+            return {"error": "Database connection failed"}
+        
+        cursor = connection.cursor()
+        
+        # Get user's bookings with ticket IDs
+        query = """
+        SELECT eb.id, eb.name, eb.email, eb.phone, eb.slots, eb.ticket_id, eb.booking_date,
+               e.title, e.location, e.start_date, e.end_date
+        FROM exhibition_bookings eb
+        JOIN exhibitions e ON eb.exhibition_id = e.id
+        WHERE eb.user_id = %s AND eb.payment_status = 'completed'
+        ORDER BY eb.booking_date DESC
+        """
+        cursor.execute(query, (user_id,))
+        results = cursor.fetchall()
+        
+        bookings = []
+        for result in results:
+            booking = {
+                "id": result[0],
+                "name": result[1],
+                "email": result[2],
+                "phone": result[3],
+                "slots": result[4],
+                "ticketId": result[5],
+                "bookingDate": result[6].isoformat() if result[6] else None,
+                "exhibitionTitle": result[7],
+                "location": result[8],
+                "startDate": result[9].isoformat() if result[9] else None,
+                "endDate": result[10].isoformat() if result[10] else None,
+                "ticketUrl": f"/tickets/{result[5]}.pdf" if result[5] else None
+            }
+            
+            bookings.append(booking)
+        
+        return {"bookings": bookings}
+    except Exception as e:
+        print(f"Error getting user booking tickets: {e}")
+        return {"error": str(e)}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
