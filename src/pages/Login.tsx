@@ -109,11 +109,6 @@ const Login = () => {
               Sign up
             </Link>
           </div>
-          <div className="text-center text-sm">
-            <Link to="/admin-login" className="text-gray-500 hover:text-gold">
-              Admin Login
-            </Link>
-          </div>
         </CardFooter>
       </Card>
     </div>

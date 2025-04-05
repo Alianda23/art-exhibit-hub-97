@@ -99,7 +99,6 @@ const AdminLogin = () => {
         </CardContent>
         <CardFooter>
           <div className="text-center text-sm w-full">
-            Not an admin?{" "}
             <Link to="/login" className="text-gold hover:underline">
               Regular User Login
             </Link>
