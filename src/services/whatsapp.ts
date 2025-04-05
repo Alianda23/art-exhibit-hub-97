@@ -13,7 +13,7 @@ export const sendWhatsAppMessage = async (message: string): Promise<boolean> => 
     // In a real implementation, this would connect to a WhatsApp API
     // For now, we'll simulate a successful API call
     
-    console.log("Message would be sent to WhatsApp:", message);
+    console.log("Message would be sent to WhatsApp number +254741080177:", message);
     
     // Here you'd typically make an API call to your WhatsApp integration service
     // For example:
@@ -24,7 +24,7 @@ export const sendWhatsAppMessage = async (message: string): Promise<boolean> => 
     //     'Authorization': `Bearer ${your_whatsapp_api_key}`
     //   },
     //   body: JSON.stringify({ 
-    //     phone: your_admin_phone_number,
+    //     phone: '+254741080177', // Admin's WhatsApp number
     //     message 
     //   })
     // });
