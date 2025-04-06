@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 const Signup = () => {
   const [name, setName] = useState("");
@@ -15,15 +16,18 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signup } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     
     // Validation
     if (!name || !email || !phone || !password || !confirmPassword) {
+      setError("Please fill in all fields");
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -33,6 +37,7 @@ const Signup = () => {
     }
     
     if (password !== confirmPassword) {
+      setError("Passwords do not match");
       toast({
         title: "Error",
         description: "Passwords do not match",
@@ -44,7 +49,10 @@ const Signup = () => {
     setLoading(true);
     
     try {
+      console.log("Attempting signup with:", { name, email });
       const success = await signup(name, email, password, phone);
+      
+      console.log("Signup result:", success);
       
       if (success) {
         toast({
@@ -53,6 +61,7 @@ const Signup = () => {
         });
         navigate("/");
       } else {
+        setError("Failed to create account. This email may already be registered.");
         toast({
           title: "Error",
           description: "Failed to create account. This email may already be registered.",
@@ -61,9 +70,10 @@ const Signup = () => {
       }
     } catch (error) {
       console.error("Signup error:", error);
+      setError("Connection error. Please try again later.");
       toast({
         title: "Connection Error",
-        description: "Could not reach the server. Please check your connection or try again later.",
+        description: "Could not reach the server. Please check if the server is running.",
         variant: "destructive",
       });
     } finally {
@@ -89,6 +99,7 @@ const Signup = () => {
                 placeholder="John Kamau"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -99,6 +110,7 @@ const Signup = () => {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -108,6 +120,7 @@ const Signup = () => {
                 placeholder="+254 712 345 678"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -118,6 +131,7 @@ const Signup = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -128,14 +142,25 @@ const Signup = () => {
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
               />
             </div>
+            {error && (
+              <div className="text-red-500 text-sm py-2">{error}</div>
+            )}
             <Button 
               type="submit" 
               className="w-full bg-gold hover:bg-gold-dark text-white"
               disabled={loading}
             >
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                  Creating account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
           </form>
         </CardContent>

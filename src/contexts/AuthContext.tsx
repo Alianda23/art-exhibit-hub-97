@@ -39,29 +39,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check if user is already logged in
   useEffect(() => {
-    if (isAuthenticated()) {
-      const userName = localStorage.getItem('userName') || '';
-      const userId = localStorage.getItem('userId') || localStorage.getItem('adminId') || '';
-      
-      // Create a basic user object from localStorage
-      setCurrentUser({
-        id: userId,
-        name: userName,
-        email: '',  // We don't store sensitive info in localStorage
-        isAdmin: checkIsAdmin(),
-      });
-      
-      setIsAdmin(checkIsAdmin());
-      setIsAuthenticated(true);
-    }
+    const checkAuth = async () => {
+      if (isAuthenticated()) {
+        const userName = localStorage.getItem('userName') || '';
+        const userId = localStorage.getItem('userId') || localStorage.getItem('adminId') || '';
+        
+        // Create a basic user object from localStorage
+        setCurrentUser({
+          id: userId,
+          name: userName,
+          email: '',  // We don't store sensitive info in localStorage
+          isAdmin: checkIsAdmin(),
+        });
+        
+        setIsAdmin(checkIsAdmin());
+        setIsAuthenticated(true);
+      }
+    };
+    
+    checkAuth();
   }, []);
 
   // Regular user login
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('AuthContext: Attempting user login', { email });
       const response = await loginUser({ email, password });
       
       if (response.error) {
+        console.log('AuthContext: Login failed', response.error);
         return false;
       }
       
@@ -75,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setIsAdmin(false);
       setIsAuthenticated(true);
+      console.log('AuthContext: Login successful', { name: response.name });
       return true;
     } catch (error) {
       console.error("Login error:", error);
@@ -85,9 +92,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Admin login
   const adminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('AuthContext: Attempting admin login', { email });
       const response = await loginAdmin({ email, password });
       
       if (response.error) {
+        console.log('AuthContext: Admin login failed', response.error);
         return false;
       }
       
@@ -101,6 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setIsAdmin(true);
       setIsAuthenticated(true);
+      console.log('AuthContext: Admin login successful', { name: response.name });
       return true;
     } catch (error) {
       console.error("Admin login error:", error);
@@ -111,9 +121,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // User signup
   const signup = async (name: string, email: string, password: string, phone: string): Promise<boolean> => {
     try {
+      console.log('AuthContext: Attempting signup', { name, email });
       const response = await registerUser({ name, email, password, phone });
       
       if (response.error) {
+        console.log('AuthContext: Signup failed', response.error);
         return false;
       }
       
@@ -127,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setIsAdmin(false);
       setIsAuthenticated(true);
+      console.log('AuthContext: Signup successful');
       return true;
     } catch (error) {
       console.error("Signup error:", error);
@@ -140,6 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser(null);
     setIsAdmin(false);
     setIsAuthenticated(false);
+    console.log('AuthContext: User logged out');
   };
 
   const value = {
