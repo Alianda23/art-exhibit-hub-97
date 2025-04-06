@@ -1,3 +1,4 @@
+
 // M-Pesa API utilities
 
 // M-Pesa credentials
@@ -5,6 +6,7 @@ const CONSUMER_KEY = "sMwMwGZ8oOiSkNrUIrPbcCeWIO8UiQ3SV4CyX739uAyZVs1F";
 const CONSUMER_SECRET = "A3Hs5zRY3nDCn7XpxPuc1iAKpfy6UDdetiCalIAfuAIpgTROI5yCqqOewDfThh2o";
 const API_URL = 'http://localhost:8000';
 const CALLBACK_URL = "https://webhook.site/3c1f62b5-4214-47d6-9f26-71c1f4b9c8f0";
+const API_BASE_URL = "https://sandbox.safaricom.co.ke";
 
 // Function to initiate STK Push
 export const initiateSTKPush = async (
