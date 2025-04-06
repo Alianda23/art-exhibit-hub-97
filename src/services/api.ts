@@ -1,4 +1,3 @@
-
 // API service to connect to the Python backend
 
 // Base URL for the API
@@ -87,14 +86,19 @@ const storeAuthData = (data: AuthResponse, isAdmin: boolean) => {
 // Register a new user
 export const registerUser = async (userData: RegisterData): Promise<AuthResponse> => {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch(`${API_URL}/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(userData),
+      signal: controller.signal
     });
     
+    clearTimeout(timeoutId);
     const data = await response.json();
     
     if (response.ok) {
@@ -104,6 +108,9 @@ export const registerUser = async (userData: RegisterData): Promise<AuthResponse
     return data;
   } catch (error) {
     console.error('Registration error:', error);
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return { error: 'Connection timeout. Server may be down or unreachable.' };
+    }
     return { error: 'Network error. Please try again.' };
   }
 };
@@ -111,14 +118,19 @@ export const registerUser = async (userData: RegisterData): Promise<AuthResponse
 // Login a user
 export const loginUser = async (credentials: LoginData): Promise<AuthResponse> => {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
+      signal: controller.signal
     });
     
+    clearTimeout(timeoutId);
     const data = await response.json();
     
     if (response.ok) {
@@ -128,6 +140,9 @@ export const loginUser = async (credentials: LoginData): Promise<AuthResponse> =
     return data;
   } catch (error) {
     console.error('Login error:', error);
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return { error: 'Connection timeout. Server may be down or unreachable.' };
+    }
     return { error: 'Network error. Please try again.' };
   }
 };
@@ -135,14 +150,19 @@ export const loginUser = async (credentials: LoginData): Promise<AuthResponse> =
 // Login as admin
 export const loginAdmin = async (credentials: LoginData): Promise<AuthResponse> => {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch(`${API_URL}/admin-login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
+      signal: controller.signal
     });
     
+    clearTimeout(timeoutId);
     const data = await response.json();
     
     if (response.ok) {
@@ -152,6 +172,9 @@ export const loginAdmin = async (credentials: LoginData): Promise<AuthResponse> 
     return data;
   } catch (error) {
     console.error('Admin login error:', error);
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return { error: 'Connection timeout. Server may be down or unreachable.' };
+    }
     return { error: 'Network error. Please try again.' };
   }
 };
@@ -194,10 +217,16 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
   };
   
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    
     const response = await fetch(`${API_URL}${url}`, {
       ...options,
       headers,
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
     
     if (response.status === 401) {
       // Token expired or invalid
@@ -208,6 +237,9 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
     return await response.json();
   } catch (error) {
     console.error('API request error:', error);
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Connection timeout. Server may be down or unreachable.');
+    }
     throw error;
   }
 };
@@ -418,4 +450,3 @@ export const getUserOrders = async (userId: string) => {
     throw error;
   }
 };
-

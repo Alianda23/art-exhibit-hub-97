@@ -60,9 +60,10 @@ const Signup = () => {
         });
       }
     } catch (error) {
+      console.error("Signup error:", error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again later.",
+        title: "Connection Error",
+        description: "Could not reach the server. Please check your connection or try again later.",
         variant: "destructive",
       });
     } finally {

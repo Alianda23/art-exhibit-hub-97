@@ -47,9 +47,10 @@ const Login = () => {
         });
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast({
-        title: "Error",
-        description: "An error occurred during login",
+        title: "Connection Error",
+        description: "Could not reach the server. Please check your connection or try again later.",
         variant: "destructive",
       });
     } finally {

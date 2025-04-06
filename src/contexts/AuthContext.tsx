@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User } from "@/types";
-import { adminUser, users } from "@/data/mockData";
 import { 
   loginUser, 
   loginAdmin, 
@@ -79,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (error) {
       console.error("Login error:", error);
-      return false;
+      throw error; // Rethrow to handle in component
     }
   };
 
@@ -105,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (error) {
       console.error("Admin login error:", error);
-      return false;
+      throw error; // Rethrow to handle in component
     }
   };
   
@@ -131,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (error) {
       console.error("Signup error:", error);
-      return false;
+      throw error; // Rethrow to handle in component
     }
   };
 
