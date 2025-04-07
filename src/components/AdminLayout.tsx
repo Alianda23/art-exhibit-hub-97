@@ -42,7 +42,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Avatar className="cursor-pointer">
-                  <AvatarImage src={currentUser?.image} />
+                  {/* Removed the AvatarImage that was trying to access currentUser.image */}
                   <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
