@@ -1,3 +1,4 @@
+
 // API service to connect to the Python backend
 
 // Base URL for the API
@@ -27,7 +28,7 @@ interface LoginData {
 }
 
 // Interface for artwork data
-interface ArtworkData {
+export interface ArtworkData {
   id?: string;
   title: string;
   artist: string;
@@ -41,7 +42,7 @@ interface ArtworkData {
 }
 
 // Interface for exhibition data
-interface ExhibitionData {
+export interface ExhibitionData {
   id?: string;
   title: string;
   description: string;
