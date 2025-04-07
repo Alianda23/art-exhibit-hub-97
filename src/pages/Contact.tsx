@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 import { submitContactMessage } from '@/services/api';
+import ChatBot from '@/components/ChatBot';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -75,6 +76,7 @@ const Contact = () => {
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Have questions or inquiries? Get in touch with our team and we'll get back to you as soon as possible.
+            Or use our chat assistant for immediate help with common questions.
           </p>
         </div>
         
@@ -203,6 +205,9 @@ const Contact = () => {
           </div>
         </div>
       </div>
+      
+      {/* Add the ChatBot component */}
+      <ChatBot />
     </div>
   );
 };

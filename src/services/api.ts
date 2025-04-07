@@ -365,3 +365,57 @@ export const updateMessageStatus = async (id: string, status: 'new' | 'read' | '
     body: JSON.stringify({ status }),
   });
 };
+
+// Get all tickets (admin only)
+export const getAllTickets = async () => {
+  return await authFetch('/tickets');
+};
+
+// Generate exhibition ticket
+export const generateExhibitionTicket = async (bookingId: string) => {
+  try {
+    const response = await fetch(`${API_URL}/tickets/generate/${bookingId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getToken()}`,
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to generate ticket');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Ticket generation error:', error);
+    throw error;
+  }
+};
+
+// Get user tickets
+export const getUserTickets = async (userId: string) => {
+  return await authFetch(`/tickets/user/${userId}`);
+};
+
+// Get user orders
+export const getUserOrders = async (userId: string) => {
+  try {
+    const response = await fetch(`${API_URL}/orders/user/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch user orders');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Get user orders error:', error);
+    throw error;
+  }
+};
+
