@@ -10,7 +10,7 @@ SECRET_KEY = "your_secret_key_replace_this_with_a_secure_random_string"
 def generate_token(user_id, name, is_admin):
     """Generate a JWT token for authentication"""
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),  # Ensure user_id is converted to string
         "name": name,
         "is_admin": is_admin,
         "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)

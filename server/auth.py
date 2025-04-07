@@ -1,3 +1,4 @@
+
 import hashlib
 import secrets
 from database import get_db_connection
@@ -128,7 +129,7 @@ def login_admin(email, password):
 def generate_token(user_id, name, is_admin):
     """Generate a JWT token for authentication"""
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),  # Ensure user_id is converted to string
         "name": name,
         "is_admin": is_admin,
         "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)
