@@ -1,3 +1,4 @@
+
 // API service to connect to the Python backend
 
 // Base URL for the API
@@ -203,15 +204,16 @@ export const logout = (): void => {
   localStorage.removeItem('adminId');
 };
 
-// API request with authentication - Fixed to properly handle authentication headers
+// API request with authentication
 export const authFetch = async (url: string, options: RequestInit = {}): Promise<any> => {
   const token = getToken();
   
   if (!token) {
+    console.error('No authentication token found');
     throw new Error('No authentication token found');
   }
   
-  // Ensure headers are properly set
+  // Ensure headers are properly set with Bearer prefix
   const headers = {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
@@ -224,7 +226,10 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
     
     console.log(`Making authenticated request to: ${API_URL}${url}`);
     console.log('Using token:', token);
-    console.log('Request options:', { ...options, headers });
+    console.log('Request options:', { 
+      ...options, 
+      headers: { ...headers, Authorization: 'Bearer [REDACTED]' } 
+    });
     
     const response = await fetch(`${API_URL}${url}`, {
       ...options,
@@ -234,17 +239,29 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
     
     clearTimeout(timeoutId);
     
+    // Parse response as JSON
+    let data;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        data = { text };
+      }
+    }
+    
+    // Log response for debugging
+    console.log('Response status:', response.status);
+    console.log('Response data:', data);
+    
     if (response.status === 401) {
       // Token expired or invalid
       logout();
       throw new Error('Session expired. Please login again.');
     }
-    
-    const data = await response.json();
-    
-    // Log response for debugging
-    console.log('Response status:', response.status);
-    console.log('Response data:', data);
     
     if (response.status === 403) {
       console.error('403 Forbidden error - Access denied', data);
@@ -358,6 +375,7 @@ export const createExhibition = async (exhibitionData: ExhibitionData) => {
 
 // Update an existing exhibition (admin only)
 export const updateExhibition = async (id: string, exhibitionData: ExhibitionData) => {
+  console.log('Updating exhibition:', id, exhibitionData);
   return await authFetch(`/exhibitions/${id}`, {
     method: 'PUT',
     body: JSON.stringify(exhibitionData),
@@ -366,6 +384,7 @@ export const updateExhibition = async (id: string, exhibitionData: ExhibitionDat
 
 // Delete an exhibition (admin only)
 export const deleteExhibition = async (id: string) => {
+  console.log('Deleting exhibition:', id);
   return await authFetch(`/exhibitions/${id}`, {
     method: 'DELETE',
   });

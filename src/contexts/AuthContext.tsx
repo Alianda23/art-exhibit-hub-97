@@ -6,7 +6,7 @@ import {
   loginAdmin, 
   registerUser, 
   logout as apiLogout, 
-  isAuthenticated,
+  isAuthenticated as checkIsAuthenticated,
   isAdmin as checkIsAdmin
 } from "@/services/api";
 
@@ -40,23 +40,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check if user is already logged in
   useEffect(() => {
     const checkAuth = async () => {
-      if (isAuthenticated()) {
-        const userName = localStorage.getItem('userName') || '';
-        const userId = localStorage.getItem('userId') || localStorage.getItem('adminId') || '';
-        const userIsAdmin = checkIsAdmin();
-        
-        console.log("Auth check:", { userName, userId, isAdmin: userIsAdmin });
-        
-        // Create a basic user object from localStorage
-        setCurrentUser({
-          id: userId,
-          name: userName,
-          email: '',  // We don't store sensitive info in localStorage
-          isAdmin: userIsAdmin,
-        });
-        
-        setIsAdmin(userIsAdmin);
-        setIsAuthenticated(true);
+      try {
+        if (checkIsAuthenticated()) {
+          const userName = localStorage.getItem('userName') || '';
+          const userId = localStorage.getItem('userId') || localStorage.getItem('adminId') || '';
+          const userIsAdmin = checkIsAdmin();
+          
+          console.log("Auth check:", { 
+            userName, 
+            userId, 
+            isAdmin: userIsAdmin,
+            token: localStorage.getItem('token')
+          });
+          
+          // Create a basic user object from localStorage
+          setCurrentUser({
+            id: userId,
+            name: userName,
+            email: '',  // We don't store sensitive info in localStorage
+            isAdmin: userIsAdmin,
+          });
+          
+          setIsAdmin(userIsAdmin);
+          setIsAuthenticated(true);
+        } else {
+          console.log("User is not authenticated");
+          setCurrentUser(null);
+          setIsAdmin(false);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error("Authentication check error:", error);
+        setCurrentUser(null);
+        setIsAdmin(false);
+        setIsAuthenticated(false);
       }
     };
     
@@ -113,7 +130,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setIsAdmin(true);
       setIsAuthenticated(true);
-      console.log('AuthContext: Admin login successful', { name: response.name, isAdmin: true });
+      console.log('AuthContext: Admin login successful', { 
+        name: response.name, 
+        isAdmin: true,
+        token: localStorage.getItem('token')
+      });
       return true;
     } catch (error) {
       console.error("Admin login error:", error);

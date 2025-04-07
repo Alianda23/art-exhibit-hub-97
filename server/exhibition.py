@@ -1,3 +1,4 @@
+
 from database import get_db_connection, dict_from_row
 from auth import verify_token
 
@@ -102,12 +103,23 @@ def get_exhibition(exhibition_id):
 
 def create_exhibition(auth_header, exhibition_data):
     """Create a new exhibition (admin only)"""
+    # Debug input
+    print(f"Create exhibition called with auth_header: {auth_header}")
+    print(f"Exhibition data: {exhibition_data}")
+    
     if not auth_header:
+        print("Error: No authentication header provided")
         return {"error": "Authentication required"}
     
     # Extract token from header
-    token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
+    token = None
+    if auth_header.startswith('Bearer '):
+        token = auth_header[7:]
+    else:
+        token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
+        
     if not token:
+        print("Error: Invalid authentication token format")
         return {"error": "Invalid authentication token"}
     
     # Debug token verification
@@ -118,10 +130,12 @@ def create_exhibition(auth_header, exhibition_data):
     print(f"Token verification result: {payload}")
     
     if isinstance(payload, dict) and "error" in payload:
-        return {"error": f"Token verification failed: {payload['error']}"}
+        print(f"Token verification error: {payload['error']}")
+        return payload
     
-    # Check if user is admin - fix the payload structure check
+    # Check if user is admin
     if not payload.get("is_admin", False):
+        print(f"Admin check failed. Payload: {payload}")
         return {"error": "Unauthorized access: Not an admin"}
     
     connection = get_db_connection()
@@ -168,12 +182,24 @@ def create_exhibition(auth_header, exhibition_data):
 
 def update_exhibition(auth_header, exhibition_id, exhibition_data):
     """Update an existing exhibition (admin only)"""
+    # Debug input
+    print(f"Update exhibition called with auth_header: {auth_header}")
+    print(f"Exhibition ID: {exhibition_id}")
+    print(f"Exhibition data: {exhibition_data}")
+    
     if not auth_header:
+        print("Error: No authentication header provided")
         return {"error": "Authentication required"}
     
     # Extract token from header
-    token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
+    token = None
+    if auth_header.startswith('Bearer '):
+        token = auth_header[7:]
+    else:
+        token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
+        
     if not token:
+        print("Error: Invalid authentication token format")
         return {"error": "Invalid authentication token"}
     
     # Debug token verification
@@ -184,10 +210,12 @@ def update_exhibition(auth_header, exhibition_id, exhibition_data):
     print(f"Token verification result: {payload}")
     
     if isinstance(payload, dict) and "error" in payload:
-        return {"error": f"Token verification failed: {payload['error']}"}
+        print(f"Token verification error: {payload['error']}")
+        return payload
     
-    # Check if user is admin - fix the payload structure check
+    # Check if user is admin
     if not payload.get("is_admin", False):
+        print(f"Admin check failed. Payload: {payload}")
         return {"error": "Unauthorized access: Not an admin"}
     
     connection = get_db_connection()
@@ -234,12 +262,23 @@ def update_exhibition(auth_header, exhibition_id, exhibition_data):
 
 def delete_exhibition(auth_header, exhibition_id):
     """Delete an exhibition (admin only)"""
+    # Debug input
+    print(f"Delete exhibition called with auth_header: {auth_header}")
+    print(f"Exhibition ID: {exhibition_id}")
+    
     if not auth_header:
+        print("Error: No authentication header provided")
         return {"error": "Authentication required"}
     
     # Extract token from header
-    token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
+    token = None
+    if auth_header.startswith('Bearer '):
+        token = auth_header[7:]
+    else:
+        token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
+        
     if not token:
+        print("Error: Invalid authentication token format")
         return {"error": "Invalid authentication token"}
     
     # Debug token verification
@@ -250,10 +289,12 @@ def delete_exhibition(auth_header, exhibition_id):
     print(f"Token verification result: {payload}")
     
     if isinstance(payload, dict) and "error" in payload:
-        return {"error": f"Token verification failed: {payload['error']}"}
+        print(f"Token verification error: {payload['error']}")
+        return payload
     
-    # Check if user is admin - fix the payload structure check
+    # Check if user is admin
     if not payload.get("is_admin", False):
+        print(f"Admin check failed. Payload: {payload}")
         return {"error": "Unauthorized access: Not an admin"}
     
     connection = get_db_connection()

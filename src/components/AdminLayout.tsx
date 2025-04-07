@@ -14,12 +14,19 @@ interface AdminLayoutProps {
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const navigate = useNavigate();
-  const { logout, currentUser } = useAuth();
+  const { logout, currentUser, isAuthenticated, isAdmin: userIsAdmin } = useAuth();
   
   useEffect(() => {
     // Check if user is admin
     const adminCheck = isAdmin();
-    console.log("Admin check in AdminLayout:", { isAdmin: adminCheck });
+    console.log("Admin check in AdminLayout:", { 
+      isAdmin: adminCheck,
+      isAuthenticated,
+      currentUser,
+      userIsAdmin, 
+      localStorageIsAdmin: localStorage.getItem('isAdmin'),
+      token: localStorage.getItem('token')
+    });
     
     if (!adminCheck) {
       toast({
@@ -29,7 +36,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       });
       navigate('/admin-login');
     }
-  }, [navigate]);
+  }, [navigate, isAuthenticated, currentUser, userIsAdmin]);
   
   const handleLogout = () => {
     logout();
