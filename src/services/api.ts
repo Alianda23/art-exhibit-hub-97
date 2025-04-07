@@ -433,6 +433,22 @@ export const updateMessageStatus = async (id: string, status: 'new' | 'read' | '
   });
 };
 
+// Place an order for artwork
+export const placeArtworkOrder = async (orderData: any) => {
+  return await authFetch('/orders/artwork', {
+    method: 'POST',
+    body: JSON.stringify(orderData),
+  });
+};
+
+// Book an exhibition
+export const bookExhibition = async (bookingData: any) => {
+  return await authFetch('/orders/exhibition', {
+    method: 'POST',
+    body: JSON.stringify(bookingData),
+  });
+};
+
 // Get all tickets (admin only)
 export const getAllTickets = async () => {
   return await authFetch('/tickets');
@@ -441,18 +457,7 @@ export const getAllTickets = async () => {
 // Generate exhibition ticket
 export const generateExhibitionTicket = async (bookingId: string) => {
   try {
-    const response = await fetch(`${API_URL}/tickets/generate/${bookingId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${getToken()}`,
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to generate ticket');
-    }
-    
-    return await response.json();
+    return await authFetch(`/tickets/generate/${bookingId}`);
   } catch (error) {
     console.error('Ticket generation error:', error);
     throw error;
@@ -467,21 +472,63 @@ export const getUserTickets = async (userId: string) => {
 // Get user orders
 export const getUserOrders = async (userId: string) => {
   try {
-    const response = await fetch(`${API_URL}/orders/user/${userId}`, {
-      method: 'GET',
+    return await authFetch(`/orders/user/${userId}`);
+  } catch (error) {
+    console.error('Get user orders error:', error);
+    throw error;
+  }
+};
+
+// Initiate M-Pesa payment
+export const initiateMpesaPayment = async (
+  phoneNumber: string,
+  amount: number,
+  orderType: 'artwork' | 'exhibition',
+  orderId: string,
+  userId: string,
+  accountReference: string
+) => {
+  try {
+    const response = await fetch(`${API_URL}/mpesa/stk-push`, {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${getToken()}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        phoneNumber,
+        amount,
+        orderType,
+        orderId,
+        userId,
+        accountReference
+      }),
     });
     
     if (!response.ok) {
-      throw new Error('Failed to fetch user orders');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Payment initiation failed');
     }
     
     return await response.json();
   } catch (error) {
-    console.error('Get user orders error:', error);
+    console.error('M-Pesa payment error:', error);
+    throw error;
+  }
+};
+
+// Check M-Pesa transaction status
+export const checkPaymentStatus = async (checkoutRequestId: string) => {
+  try {
+    const response = await fetch(`${API_URL}/mpesa/status/${checkoutRequestId}`);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to check payment status');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Payment status check error:', error);
     throw error;
   }
 };
