@@ -1,3 +1,4 @@
+
 // API service to connect to the Python backend
 
 // Base URL for the API
@@ -296,12 +297,46 @@ export const createArtwork = async (artworkData: ArtworkData) => {
   });
 };
 
+// Update existing artwork (admin only)
+export const updateArtwork = async (id: string, artworkData: ArtworkData) => {
+  console.log(`Updating artwork ${id} with data:`, artworkData);
+  return await authFetch(`/artworks/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(artworkData),
+  });
+};
+
+// Delete artwork (admin only)
+export const deleteArtwork = async (id: string) => {
+  console.log(`Deleting artwork ${id}`);
+  return await authFetch(`/artworks/${id}`, {
+    method: 'DELETE',
+  });
+};
+
 // Create a new exhibition (admin only)
 export const createExhibition = async (exhibitionData: ExhibitionData) => {
   console.log('Creating exhibition with data:', exhibitionData);
   return await authFetch('/exhibitions', {
     method: 'POST',
     body: JSON.stringify(exhibitionData),
+  });
+};
+
+// Update existing exhibition (admin only)
+export const updateExhibition = async (id: string, exhibitionData: ExhibitionData) => {
+  console.log(`Updating exhibition ${id} with data:`, exhibitionData);
+  return await authFetch(`/exhibitions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(exhibitionData),
+  });
+};
+
+// Delete exhibition (admin only)
+export const deleteExhibition = async (id: string) => {
+  console.log(`Deleting exhibition ${id}`);
+  return await authFetch(`/exhibitions/${id}`, {
+    method: 'DELETE',
   });
 };
 
