@@ -1,3 +1,4 @@
+
 from database import get_db_connection, dict_from_row
 from auth import verify_token
 
@@ -87,11 +88,14 @@ def create_artwork(auth_header, artwork_data):
     payload = verify_token(token)
     print(f"Token verification result: {payload}")
     
+    # Check if verification returned an error
     if isinstance(payload, dict) and "error" in payload:
         return {"error": f"Token verification failed: {payload['error']}"}
     
-    # Check if user is admin - fix the payload structure check
-    if not payload.get("is_admin", False):
+    # Check if user is admin
+    is_admin = payload.get("is_admin")
+    if not is_admin:
+        print("Access denied: Not an admin user")
         return {"error": "Unauthorized access: Not an admin"}
     
     connection = get_db_connection()
@@ -148,11 +152,14 @@ def update_artwork(auth_header, artwork_id, artwork_data):
     payload = verify_token(token)
     print(f"Token verification result: {payload}")
     
+    # Check if verification returned an error
     if isinstance(payload, dict) and "error" in payload:
         return {"error": f"Token verification failed: {payload['error']}"}
     
-    # Check if user is admin - fix the payload structure check
-    if not payload.get("is_admin", False):
+    # Check if user is admin
+    is_admin = payload.get("is_admin")
+    if not is_admin:
+        print("Access denied: Not an admin user")
         return {"error": "Unauthorized access: Not an admin"}
     
     connection = get_db_connection()
@@ -213,11 +220,14 @@ def delete_artwork(auth_header, artwork_id):
     payload = verify_token(token)
     print(f"Token verification result: {payload}")
     
+    # Check if verification returned an error
     if isinstance(payload, dict) and "error" in payload:
         return {"error": f"Token verification failed: {payload['error']}"}
     
-    # Check if user is admin - fix the payload structure check
-    if not payload.get("is_admin", False):
+    # Check if user is admin
+    is_admin = payload.get("is_admin")
+    if not is_admin:
+        print("Access denied: Not an admin user")
         return {"error": "Unauthorized access: Not an admin"}
     
     connection = get_db_connection()

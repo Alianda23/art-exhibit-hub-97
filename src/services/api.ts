@@ -1,4 +1,3 @@
-
 // API service to connect to the Python backend
 
 // Base URL for the API
@@ -204,7 +203,7 @@ export const logout = (): void => {
   localStorage.removeItem('adminId');
 };
 
-// API request with authentication
+// API request with authentication - Fixed to properly handle authentication headers
 export const authFetch = async (url: string, options: RequestInit = {}): Promise<any> => {
   const token = getToken();
   
@@ -212,10 +211,11 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
     throw new Error('No authentication token found');
   }
   
+  // Ensure headers are properly set
   const headers = {
-    ...(options.headers || {}),
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
+    ...(options.headers || {}),
   };
   
   try {
@@ -240,18 +240,16 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
       throw new Error('Session expired. Please login again.');
     }
     
-    if (response.status === 403) {
-      console.log('403 Forbidden error - Access denied');
-      // Get more details from the response
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Access denied. Please check your permissions.');
-    }
-    
     const data = await response.json();
     
     // Log response for debugging
     console.log('Response status:', response.status);
     console.log('Response data:', data);
+    
+    if (response.status === 403) {
+      console.error('403 Forbidden error - Access denied', data);
+      throw new Error(data.error || 'Access denied. Please check your permissions.');
+    }
     
     if (!response.ok) {
       throw new Error(data.error || `Request failed with status ${response.status}`);

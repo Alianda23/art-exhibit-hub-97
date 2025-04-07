@@ -43,16 +43,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isAuthenticated()) {
         const userName = localStorage.getItem('userName') || '';
         const userId = localStorage.getItem('userId') || localStorage.getItem('adminId') || '';
+        const userIsAdmin = checkIsAdmin();
+        
+        console.log("Auth check:", { userName, userId, isAdmin: userIsAdmin });
         
         // Create a basic user object from localStorage
         setCurrentUser({
           id: userId,
           name: userName,
           email: '',  // We don't store sensitive info in localStorage
-          isAdmin: checkIsAdmin(),
+          isAdmin: userIsAdmin,
         });
         
-        setIsAdmin(checkIsAdmin());
+        setIsAdmin(userIsAdmin);
         setIsAuthenticated(true);
       }
     };
@@ -81,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setIsAdmin(false);
       setIsAuthenticated(true);
-      console.log('AuthContext: Login successful', { name: response.name });
+      console.log('AuthContext: Login successful', { name: response.name, isAdmin: false });
       return true;
     } catch (error) {
       console.error("Login error:", error);
@@ -110,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setIsAdmin(true);
       setIsAuthenticated(true);
-      console.log('AuthContext: Admin login successful', { name: response.name });
+      console.log('AuthContext: Admin login successful', { name: response.name, isAdmin: true });
       return true;
     } catch (error) {
       console.error("Admin login error:", error);

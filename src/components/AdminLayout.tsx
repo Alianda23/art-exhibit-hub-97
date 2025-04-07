@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LogOut, User } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -16,7 +17,16 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const { logout, currentUser } = useAuth();
   
   useEffect(() => {
-    if (!isAdmin()) {
+    // Check if user is admin
+    const adminCheck = isAdmin();
+    console.log("Admin check in AdminLayout:", { isAdmin: adminCheck });
+    
+    if (!adminCheck) {
+      toast({
+        title: "Access Denied",
+        description: "You need admin privileges to access this area",
+        variant: "destructive"
+      });
       navigate('/admin-login');
     }
   }, [navigate]);
@@ -34,15 +44,16 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Admin header - simplified with just profile */}
       <header className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4 h-16 flex justify-end items-center">
+        <div className="container mx-auto px-4 h-16 flex justify-between items-center">
+          <div className="text-lg font-semibold">Admin Dashboard</div>
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-600 mr-2">
-              {currentUser?.name || 'Admin User'}
+              {currentUser?.name || 'Admin User'} 
+              {currentUser?.isAdmin ? ' (Admin)' : ''}
             </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Avatar className="cursor-pointer">
-                  {/* Removed the AvatarImage that was trying to access currentUser.image */}
                   <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
