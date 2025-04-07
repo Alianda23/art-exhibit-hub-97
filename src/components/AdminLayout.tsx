@@ -42,7 +42,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Avatar className="cursor-pointer">
-                  <AvatarImage src={currentUser?.imageUrl} />
+                  <AvatarImage src={currentUser?.image} />
                   <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
@@ -65,8 +65,6 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       <main className="flex-grow">
         {children}
       </main>
-      
-      {/* No footer as requested */}
     </div>
   );
 };
