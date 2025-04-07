@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getAllExhibitions } from '@/services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getAllExhibitions, createExhibition, updateExhibition, deleteExhibition, ExhibitionData } from '@/services/api';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -16,40 +16,134 @@ import { Badge } from "@/components/ui/badge";
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ExhibitionForm from "@/components/ExhibitionForm";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const AdminExhibitions = () => {
   const { toast } = useToast();
-  const [selectedExhibition, setSelectedExhibition] = useState(null);
+  const queryClient = useQueryClient();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
+  const [selectedExhibition, setSelectedExhibition] = useState<ExhibitionData | null>(null);
+  const [exhibitionToDelete, setExhibitionToDelete] = useState<ExhibitionData | null>(null);
   
   // Fetch all exhibitions
   const { data, isLoading, error } = useQuery({
     queryKey: ['exhibitions'],
     queryFn: getAllExhibitions,
   });
+
+  // Create exhibition mutation
+  const createExhibitionMutation = useMutation({
+    mutationFn: createExhibition,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exhibitions'] });
+      toast({
+        title: "Success",
+        description: "Exhibition created successfully",
+      });
+      setIsDialogOpen(false);
+      setSelectedExhibition(null);
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create exhibition. Please try again.",
+      });
+      console.error("Create exhibition error:", error);
+    }
+  });
+
+  // Update exhibition mutation
+  const updateExhibitionMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: ExhibitionData }) => 
+      updateExhibition(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exhibitions'] });
+      toast({
+        title: "Success",
+        description: "Exhibition updated successfully",
+      });
+      setIsDialogOpen(false);
+      setSelectedExhibition(null);
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update exhibition. Please try again.",
+      });
+      console.error("Update exhibition error:", error);
+    }
+  });
+
+  // Delete exhibition mutation
+  const deleteExhibitionMutation = useMutation({
+    mutationFn: (id: string) => deleteExhibition(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exhibitions'] });
+      toast({
+        title: "Success",
+        description: "Exhibition deleted successfully",
+      });
+      setIsAlertDialogOpen(false);
+      setExhibitionToDelete(null);
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete exhibition. Please try again.",
+      });
+      console.error("Delete exhibition error:", error);
+      setIsAlertDialogOpen(false);
+    }
+  });
   
   const handleAddExhibition = () => {
-    toast({
-      title: "Not implemented",
-      description: "Add exhibition functionality will be implemented soon.",
-    });
+    setSelectedExhibition(null);
+    setIsDialogOpen(true);
   };
   
-  const handleEditExhibition = (exhibition) => {
+  const handleEditExhibition = (exhibition: ExhibitionData) => {
     setSelectedExhibition(exhibition);
-    toast({
-      title: "Not implemented",
-      description: "Edit exhibition functionality will be implemented soon.",
-    });
+    setIsDialogOpen(true);
   };
   
-  const handleDeleteExhibition = (exhibition) => {
-    toast({
-      title: "Not implemented",
-      description: "Delete exhibition functionality will be implemented soon.",
-    });
+  const handleDeleteExhibition = (exhibition: ExhibitionData) => {
+    setExhibitionToDelete(exhibition);
+    setIsAlertDialogOpen(true);
   };
 
-  const formatDate = (dateString) => {
+  const handleConfirmDelete = () => {
+    if (exhibitionToDelete?.id) {
+      deleteExhibitionMutation.mutate(exhibitionToDelete.id);
+    }
+  };
+
+  const handleFormSubmit = (formData: ExhibitionData) => {
+    if (selectedExhibition?.id) {
+      updateExhibitionMutation.mutate({ 
+        id: selectedExhibition.id, 
+        data: formData 
+      });
+    } else {
+      createExhibitionMutation.mutate(formData);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), 'PP');
     } catch (error) {
@@ -57,7 +151,7 @@ const AdminExhibitions = () => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'upcoming':
         return 'bg-blue-500';
@@ -120,13 +214,16 @@ const AdminExhibitions = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                exhibitions.map((exhibition) => (
+                exhibitions.map((exhibition: ExhibitionData) => (
                   <TableRow key={exhibition.id}>
                     <TableCell>
                       <img 
                         src={exhibition.imageUrl} 
                         alt={exhibition.title} 
                         className="w-16 h-16 object-cover rounded"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150';
+                        }}
                       />
                     </TableCell>
                     <TableCell className="font-medium">{exhibition.title}</TableCell>
@@ -165,6 +262,41 @@ const AdminExhibitions = () => {
           </Table>
         </div>
       </Card>
+
+      {/* Exhibition Form Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedExhibition ? 'Edit Exhibition' : 'Add New Exhibition'}
+            </DialogTitle>
+          </DialogHeader>
+          <ExhibitionForm
+            initialData={selectedExhibition || undefined}
+            onSubmit={handleFormSubmit}
+            onCancel={() => setIsDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this exhibition?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              exhibition and remove it from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
