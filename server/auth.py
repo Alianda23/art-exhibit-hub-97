@@ -1,4 +1,3 @@
-
 import hashlib
 import secrets
 from database import get_db_connection
@@ -111,6 +110,8 @@ def login_admin(email, password):
         admin_id, name = admin
         token = generate_token(admin_id, name, True)
         
+        print(f"Admin login successful: {name}, admin_id: {admin_id}, token: {token[:20]}...")
+        
         return {
             "token": token,
             "admin_id": admin_id,
@@ -132,18 +133,27 @@ def generate_token(user_id, name, is_admin):
         "is_admin": is_admin,
         "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)
     }
+    
+    print(f"Generating token with payload: {payload}")
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
 
 def verify_token(token):
     """Verify a JWT token"""
     try:
+        print(f"Verifying token: {token[:20]}...")
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        print(f"Token decoded successfully: {payload}")
         return payload
     except jwt.ExpiredSignatureError:
+        print("Token verification failed: Token expired")
         return {"error": "Token expired"}
-    except jwt.InvalidTokenError:
-        return {"error": "Invalid token"}
+    except jwt.InvalidTokenError as e:
+        print(f"Token verification failed: Invalid token - {str(e)}")
+        return {"error": f"Invalid token: {str(e)}"}
+    except Exception as e:
+        print(f"Unexpected error during token verification: {str(e)}")
+        return {"error": f"Token verification error: {str(e)}"}
 
 def create_admin(name, email, password):
     """Create a new admin (called from terminal/script)"""

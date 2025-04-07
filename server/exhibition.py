@@ -1,6 +1,6 @@
-
 from database import get_db_connection, dict_from_row
 from auth import verify_token
+import json
 
 def get_all_exhibitions():
     """Get all exhibitions from the database"""
@@ -103,41 +103,46 @@ def get_exhibition(exhibition_id):
 
 def create_exhibition(auth_header, exhibition_data):
     """Create a new exhibition (admin only)"""
-    # Debug input
-    print(f"Create exhibition called with auth_header: {auth_header}")
-    print(f"Exhibition data: {exhibition_data}")
+    print(f"\n--- Create Exhibition Request ---")
+    print(f"Auth Header: {auth_header}")
+    print(f"Exhibition Data: {exhibition_data}")
     
     if not auth_header:
-        print("Error: No authentication header provided")
+        print("ERROR: Authentication header missing")
         return {"error": "Authentication required"}
     
-    # Extract token from header
+    # Extract token from header - handle both formats
     token = None
     if auth_header.startswith('Bearer '):
         token = auth_header[7:]
     else:
-        token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
-        
+        parts = auth_header.split(" ")
+        if len(parts) > 1:
+            token = parts[1]
+    
     if not token:
-        print("Error: Invalid authentication token format")
+        print("ERROR: No token found in header")
         return {"error": "Invalid authentication token"}
     
-    # Debug token verification
-    print(f"Verifying token for create_exhibition: {token}")
-    
     # Verify token and check if user is admin
+    print(f"Verifying token: {token[:20]}...")
     payload = verify_token(token)
     print(f"Token verification result: {payload}")
     
+    # Check if verification returned an error
     if isinstance(payload, dict) and "error" in payload:
-        print(f"Token verification error: {payload['error']}")
-        return payload
+        print(f"ERROR: Token verification failed: {payload['error']}")
+        return {"error": f"Authentication failed: {payload['error']}"}
     
     # Check if user is admin
-    if not payload.get("is_admin", False):
-        print(f"Admin check failed. Payload: {payload}")
-        return {"error": "Unauthorized access: Not an admin"}
+    is_admin = payload.get("is_admin", False)
+    print(f"Is admin: {is_admin}")
     
+    if not is_admin:
+        print("ERROR: Access denied - Not an admin user")
+        return {"error": "Unauthorized access: Admin privileges required"}
+    
+    # Continue with exhibition creation
     connection = get_db_connection()
     if connection is None:
         return {"error": "Database connection failed"}
@@ -145,6 +150,14 @@ def create_exhibition(auth_header, exhibition_data):
     cursor = connection.cursor()
     
     try:
+        # Parse exhibition_data if it's a string
+        if isinstance(exhibition_data, str):
+            try:
+                exhibition_data = json.loads(exhibition_data)
+            except json.JSONDecodeError as e:
+                print(f"ERROR: Failed to parse exhibition data: {e}")
+                return {"error": f"Invalid exhibition data format: {str(e)}"}
+        
         print(f"Inserting exhibition data: {exhibition_data}")
         query = """
         INSERT INTO exhibitions (title, description, location, start_date, end_date,
@@ -171,9 +184,10 @@ def create_exhibition(auth_header, exhibition_data):
         
         # Return the newly created exhibition
         new_exhibition_id = cursor.lastrowid
+        print(f"Exhibition created successfully with ID: {new_exhibition_id}")
         return get_exhibition(new_exhibition_id)
     except Exception as e:
-        print(f"Error creating exhibition: {e}")
+        print(f"ERROR creating exhibition: {e}")
         return {"error": str(e)}
     finally:
         if connection.is_connected():

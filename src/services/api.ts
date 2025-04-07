@@ -1,4 +1,3 @@
-
 // API service to connect to the Python backend
 
 // Base URL for the API
@@ -13,18 +12,18 @@ interface AuthResponse {
   error?: string;
 }
 
+// Interface for login data
+interface LoginData {
+  email: string;
+  password: string;
+}
+
 // Interface for registration data
 interface RegisterData {
   name: string;
   email: string;
   password: string;
   phone: string;
-}
-
-// Interface for login data
-interface LoginData {
-  email: string;
-  password: string;
 }
 
 // Interface for artwork data
@@ -167,7 +166,13 @@ export const loginAdmin = async (credentials: LoginData): Promise<AuthResponse> 
     const data = await response.json();
     
     if (response.ok) {
+      console.log("Admin login successful, storing data:", {
+        ...data,
+        token: data.token ? `${data.token.substring(0, 20)}...` : null
+      });
       storeAuthData(data, true);
+    } else {
+      console.error("Admin login failed:", data.error);
     }
     
     return data;
@@ -213,7 +218,7 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
     throw new Error('No authentication token found');
   }
   
-  // Ensure headers are properly set with Bearer prefix
+  // Ensure correct Authorization header format
   const headers = {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
@@ -225,7 +230,7 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
     console.log(`Making authenticated request to: ${API_URL}${url}`);
-    console.log('Using token:', token);
+    console.log('Using token:', token.substring(0, 20) + '...');
     console.log('Request options:', { 
       ...options, 
       headers: { ...headers, Authorization: 'Bearer [REDACTED]' } 
@@ -239,8 +244,8 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
     
     clearTimeout(timeoutId);
     
-    // Parse response as JSON
     let data;
+    // Parse response based on content type
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       data = await response.json();
@@ -253,10 +258,10 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
       }
     }
     
-    // Log response for debugging
     console.log('Response status:', response.status);
     console.log('Response data:', data);
     
+    // Handle different status codes
     if (response.status === 401) {
       // Token expired or invalid
       logout();
@@ -280,6 +285,24 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
     }
     throw error;
   }
+};
+
+// Create a new artwork (admin only)
+export const createArtwork = async (artworkData: ArtworkData) => {
+  console.log('Creating artwork with data:', artworkData);
+  return await authFetch('/artworks', {
+    method: 'POST',
+    body: JSON.stringify(artworkData),
+  });
+};
+
+// Create a new exhibition (admin only)
+export const createExhibition = async (exhibitionData: ExhibitionData) => {
+  console.log('Creating exhibition with data:', exhibitionData);
+  return await authFetch('/exhibitions', {
+    method: 'POST',
+    body: JSON.stringify(exhibitionData),
+  });
 };
 
 // Get all artworks
@@ -311,30 +334,6 @@ export const getArtwork = async (id: string) => {
   }
 };
 
-// Create a new artwork (admin only)
-export const createArtwork = async (artworkData: ArtworkData) => {
-  console.log('Creating artwork with data:', artworkData);
-  return await authFetch('/artworks', {
-    method: 'POST',
-    body: JSON.stringify(artworkData),
-  });
-};
-
-// Update an existing artwork (admin only)
-export const updateArtwork = async (id: string, artworkData: ArtworkData) => {
-  return await authFetch(`/artworks/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(artworkData),
-  });
-};
-
-// Delete an artwork (admin only)
-export const deleteArtwork = async (id: string) => {
-  return await authFetch(`/artworks/${id}`, {
-    method: 'DELETE',
-  });
-};
-
 // Get all exhibitions
 export const getAllExhibitions = async () => {
   try {
@@ -362,32 +361,6 @@ export const getExhibition = async (id: string) => {
     console.error('Error fetching exhibition:', error);
     throw error;
   }
-};
-
-// Create a new exhibition (admin only)
-export const createExhibition = async (exhibitionData: ExhibitionData) => {
-  console.log('Creating exhibition with data:', exhibitionData);
-  return await authFetch('/exhibitions', {
-    method: 'POST',
-    body: JSON.stringify(exhibitionData),
-  });
-};
-
-// Update an existing exhibition (admin only)
-export const updateExhibition = async (id: string, exhibitionData: ExhibitionData) => {
-  console.log('Updating exhibition:', id, exhibitionData);
-  return await authFetch(`/exhibitions/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(exhibitionData),
-  });
-};
-
-// Delete an exhibition (admin only)
-export const deleteExhibition = async (id: string) => {
-  console.log('Deleting exhibition:', id);
-  return await authFetch(`/exhibitions/${id}`, {
-    method: 'DELETE',
-  });
 };
 
 // Submit a contact message

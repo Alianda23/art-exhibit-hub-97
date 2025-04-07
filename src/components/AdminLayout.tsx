@@ -1,12 +1,11 @@
 
 import React, { ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isAdmin } from '@/services/api';
-import { useAuth } from '@/contexts/AuthContext';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LogOut, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -14,21 +13,32 @@ interface AdminLayoutProps {
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const navigate = useNavigate();
-  const { logout, currentUser, isAuthenticated, isAdmin: userIsAdmin } = useAuth();
+  const { logout, currentUser, isAuthenticated, isAdmin } = useAuth();
   
   useEffect(() => {
-    // Check if user is admin
-    const adminCheck = isAdmin();
-    console.log("Admin check in AdminLayout:", { 
-      isAdmin: adminCheck,
-      isAuthenticated,
+    // Check if logged in and is admin
+    const token = localStorage.getItem('token');
+    const adminStatus = localStorage.getItem('isAdmin');
+    
+    console.log("Admin verification in AdminLayout:", { 
+      isAuthenticatedContext: isAuthenticated,
+      isAdminContext: isAdmin,
       currentUser,
-      userIsAdmin, 
-      localStorageIsAdmin: localStorage.getItem('isAdmin'),
-      token: localStorage.getItem('token')
+      localStorageToken: token ? (token.substring(0, 20) + '...') : null,
+      localStorageIsAdmin: adminStatus
     });
     
-    if (!adminCheck) {
+    if (!token) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access admin features",
+        variant: "destructive"
+      });
+      navigate('/admin-login');
+      return;
+    }
+    
+    if (adminStatus !== 'true') {
       toast({
         title: "Access Denied",
         description: "You need admin privileges to access this area",
@@ -36,7 +46,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       });
       navigate('/admin-login');
     }
-  }, [navigate, isAuthenticated, currentUser, userIsAdmin]);
+  }, [navigate, isAuthenticated, currentUser, isAdmin]);
   
   const handleLogout = () => {
     logout();

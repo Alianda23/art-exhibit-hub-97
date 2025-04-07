@@ -1,6 +1,6 @@
-
 from database import get_db_connection, dict_from_row
 from auth import verify_token
+import json
 
 def get_all_artworks():
     """Get all artworks from the database"""
@@ -73,31 +73,46 @@ def get_artwork(artwork_id):
 
 def create_artwork(auth_header, artwork_data):
     """Create a new artwork (admin only)"""
+    print(f"\n--- Create Artwork Request ---")
+    print(f"Auth Header: {auth_header}")
+    print(f"Artwork Data: {artwork_data}")
+    
     if not auth_header:
+        print("ERROR: Authentication header missing")
         return {"error": "Authentication required"}
     
-    # Extract token from header
-    token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
+    # Extract token from header - handle both formats
+    token = None
+    if auth_header.startswith('Bearer '):
+        token = auth_header[7:]
+    else:
+        parts = auth_header.split(" ")
+        if len(parts) > 1:
+            token = parts[1]
+    
     if not token:
+        print("ERROR: No token found in header")
         return {"error": "Invalid authentication token"}
     
-    # Debug token verification
-    print(f"Verifying token for create_artwork: {token}")
-    
     # Verify token and check if user is admin
+    print(f"Verifying token: {token[:20]}...")
     payload = verify_token(token)
     print(f"Token verification result: {payload}")
     
     # Check if verification returned an error
     if isinstance(payload, dict) and "error" in payload:
-        return {"error": f"Token verification failed: {payload['error']}"}
+        print(f"ERROR: Token verification failed: {payload['error']}")
+        return {"error": f"Authentication failed: {payload['error']}"}
     
     # Check if user is admin
-    is_admin = payload.get("is_admin")
-    if not is_admin:
-        print("Access denied: Not an admin user")
-        return {"error": "Unauthorized access: Not an admin"}
+    is_admin = payload.get("is_admin", False)
+    print(f"Is admin: {is_admin}")
     
+    if not is_admin:
+        print("ERROR: Access denied - Not an admin user")
+        return {"error": "Unauthorized access: Admin privileges required"}
+    
+    # Continue with artwork creation
     connection = get_db_connection()
     if connection is None:
         return {"error": "Database connection failed"}
@@ -105,6 +120,14 @@ def create_artwork(auth_header, artwork_data):
     cursor = connection.cursor()
     
     try:
+        # Parse artwork_data if it's a string
+        if isinstance(artwork_data, str):
+            try:
+                artwork_data = json.loads(artwork_data)
+            except json.JSONDecodeError as e:
+                print(f"ERROR: Failed to parse artwork data: {e}")
+                return {"error": f"Invalid artwork data format: {str(e)}"}
+        
         print(f"Inserting artwork data: {artwork_data}")
         query = """
         INSERT INTO artworks (title, artist, description, price, image_url,
@@ -126,9 +149,10 @@ def create_artwork(auth_header, artwork_data):
         
         # Return the newly created artwork
         new_artwork_id = cursor.lastrowid
+        print(f"Artwork created successfully with ID: {new_artwork_id}")
         return get_artwork(new_artwork_id)
     except Exception as e:
-        print(f"Error creating artwork: {e}")
+        print(f"ERROR creating artwork: {e}")
         return {"error": str(e)}
     finally:
         if connection.is_connected():

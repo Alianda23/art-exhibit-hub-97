@@ -41,16 +41,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        if (checkIsAuthenticated()) {
+        const isAuthenticated = checkIsAuthenticated();
+        if (isAuthenticated) {
           const userName = localStorage.getItem('userName') || '';
           const userId = localStorage.getItem('userId') || localStorage.getItem('adminId') || '';
-          const userIsAdmin = checkIsAdmin();
+          const userIsAdmin = localStorage.getItem('isAdmin') === 'true';
           
           console.log("Auth check:", { 
             userName, 
             userId, 
             isAdmin: userIsAdmin,
-            token: localStorage.getItem('token')
+            token: localStorage.getItem('token')?.substring(0, 20) + '...',
+            localStorageIsAdmin: localStorage.getItem('isAdmin')
           });
           
           // Create a basic user object from localStorage
@@ -133,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Admin login successful', { 
         name: response.name, 
         isAdmin: true,
-        token: localStorage.getItem('token')
+        token: localStorage.getItem('token')?.substring(0, 20) + '...'
       });
       return true;
     } catch (error) {
