@@ -37,7 +37,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center">
             <span className="font-serif text-2xl font-bold text-charcoal-dark">
-              <span className="text-gold">Afri</span>Art
+              <span className="text-gold">The Art Gallery</span> of Nairobi
             </span>
           </Link>
 
