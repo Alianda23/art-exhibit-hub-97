@@ -1,3 +1,4 @@
+
 from database import get_db_connection, dict_from_row
 from auth import verify_token
 
@@ -80,19 +81,10 @@ def create_artwork(auth_header, artwork_data):
     if not token:
         return {"error": "Invalid authentication token"}
     
-    # Debug token verification
-    print(f"Verifying token for create_artwork: {token}")
-    
     # Verify token and check if user is admin
     payload = verify_token(token)
-    print(f"Token verification result: {payload}")
-    
-    if isinstance(payload, dict) and "error" in payload:
-        return {"error": f"Token verification failed: {payload['error']}"}
-    
-    # Check if user is admin - fix the payload structure check
-    if not payload.get("is_admin", False):
-        return {"error": "Unauthorized access: Not an admin"}
+    if "error" in payload or not payload.get("is_admin", False):
+        return {"error": "Unauthorized access"}
     
     connection = get_db_connection()
     if connection is None:
@@ -101,7 +93,6 @@ def create_artwork(auth_header, artwork_data):
     cursor = connection.cursor()
     
     try:
-        print(f"Inserting artwork data: {artwork_data}")
         query = """
         INSERT INTO artworks (title, artist, description, price, image_url,
                            dimensions, medium, year, status)
@@ -141,19 +132,10 @@ def update_artwork(auth_header, artwork_id, artwork_data):
     if not token:
         return {"error": "Invalid authentication token"}
     
-    # Debug token verification
-    print(f"Verifying token for update_artwork: {token}")
-    
     # Verify token and check if user is admin
     payload = verify_token(token)
-    print(f"Token verification result: {payload}")
-    
-    if isinstance(payload, dict) and "error" in payload:
-        return {"error": f"Token verification failed: {payload['error']}"}
-    
-    # Check if user is admin - fix the payload structure check
-    if not payload.get("is_admin", False):
-        return {"error": "Unauthorized access: Not an admin"}
+    if "error" in payload or not payload.get("is_admin", False):
+        return {"error": "Unauthorized access"}
     
     connection = get_db_connection()
     if connection is None:
@@ -206,19 +188,10 @@ def delete_artwork(auth_header, artwork_id):
     if not token:
         return {"error": "Invalid authentication token"}
     
-    # Debug token verification
-    print(f"Verifying token for delete_artwork: {token}")
-    
     # Verify token and check if user is admin
     payload = verify_token(token)
-    print(f"Token verification result: {payload}")
-    
-    if isinstance(payload, dict) and "error" in payload:
-        return {"error": f"Token verification failed: {payload['error']}"}
-    
-    # Check if user is admin - fix the payload structure check
-    if not payload.get("is_admin", False):
-        return {"error": "Unauthorized access: Not an admin"}
+    if "error" in payload or not payload.get("is_admin", False):
+        return {"error": "Unauthorized access"}
     
     connection = get_db_connection()
     if connection is None:

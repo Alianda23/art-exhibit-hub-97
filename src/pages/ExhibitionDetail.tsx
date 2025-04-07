@@ -6,7 +6,7 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { formatPrice, formatDateRange } from '@/utils/formatters';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { MapPin, Calendar, Ticket, Users, Ban } from 'lucide-react';
+import { MapPin, Calendar, Ticket, Users } from 'lucide-react';
 import ExhibitionCard from '@/components/ExhibitionCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -98,31 +98,19 @@ const ExhibitionDetail = () => {
     );
   }
 
-  const isSoldOut = exhibition.availableSlots === 0;
-  const isPast = exhibition.status === 'past';
-  const isUnavailable = isSoldOut || isPast;
-
   return (
     <div className="py-12 px-4 md:px-6 bg-secondary min-h-screen">
       <div className="container mx-auto">
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="grid md:grid-cols-2 gap-6 lg:gap-12">
             <div className="p-6 lg:p-8">
-              <div className="relative">
-                <AspectRatio ratio={16/9} className="overflow-hidden rounded-lg">
-                  <img 
-                    src={exhibition.imageUrl} 
-                    alt={exhibition.title}
-                    className="w-full h-full object-cover"
-                  />
-                </AspectRatio>
-                {isSoldOut && (
-                  <div className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md font-medium flex items-center gap-2">
-                    <Ban className="h-5 w-5" />
-                    <span>Sold Out</span>
-                  </div>
-                )}
-              </div>
+              <AspectRatio ratio={16/9} className="overflow-hidden rounded-lg">
+                <img 
+                  src={exhibition.imageUrl} 
+                  alt={exhibition.title}
+                  className="w-full h-full object-cover"
+                />
+              </AspectRatio>
             </div>
             
             <div className="p-6 lg:p-8 flex flex-col">
@@ -145,11 +133,7 @@ const ExhibitionDetail = () => {
                 </div>
                 <div className="flex items-center">
                   <Users className="h-5 w-5 mr-2 text-gold" />
-                  {isSoldOut ? (
-                    <span className="text-red-500 font-medium">No slots available</span>
-                  ) : (
-                    <span>{exhibition.availableSlots} slots available</span>
-                  )}
+                  <span>{exhibition.availableSlots} slots available</span>
                 </div>
               </div>
               
@@ -159,33 +143,29 @@ const ExhibitionDetail = () => {
               </div>
               
               <div className="mt-auto space-y-6">
-                {!isUnavailable && (
-                  <div className="space-y-2">
-                    <Label htmlFor="slots">Number of Tickets</Label>
-                    <Input
-                      id="slots"
-                      type="number"
-                      min={1}
-                      max={exhibition.availableSlots}
-                      value={slots}
-                      onChange={(e) => setSlots(parseInt(e.target.value) || 1)}
-                    />
-                    <p className="text-sm text-gray-500">
-                      Total: {formatPrice(exhibition.ticketPrice * slots)}
-                    </p>
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="slots">Number of Tickets</Label>
+                  <Input
+                    id="slots"
+                    type="number"
+                    min={1}
+                    max={exhibition.availableSlots}
+                    value={slots}
+                    onChange={(e) => setSlots(parseInt(e.target.value) || 1)}
+                  />
+                  <p className="text-sm text-gray-500">
+                    Total: {formatPrice(exhibition.ticketPrice * slots)}
+                  </p>
+                </div>
                 
                 <Button 
                   onClick={handleBookNow}
-                  className={`w-full py-6 text-lg ${
-                    isUnavailable 
-                      ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed' 
-                      : 'bg-gold hover:bg-gold-dark'
-                  } text-white`}
-                  disabled={isUnavailable}
+                  className="w-full bg-gold hover:bg-gold-dark text-white py-6 text-lg"
+                  disabled={exhibition.availableSlots === 0 || exhibition.status === 'past'}
                 >
-                  {isSoldOut ? 'Sold Out' : isPast ? 'Past Exhibition' : 'Book Now'}
+                  {exhibition.availableSlots > 0 && exhibition.status !== 'past' 
+                    ? 'Book Now' 
+                    : 'Unavailable'}
                 </Button>
               </div>
             </div>

@@ -1,3 +1,4 @@
+
 from database import get_db_connection, dict_from_row
 from auth import verify_token
 
@@ -110,19 +111,10 @@ def create_exhibition(auth_header, exhibition_data):
     if not token:
         return {"error": "Invalid authentication token"}
     
-    # Debug token verification
-    print(f"Verifying token for create_exhibition: {token}")
-    
     # Verify token and check if user is admin
     payload = verify_token(token)
-    print(f"Token verification result: {payload}")
-    
-    if isinstance(payload, dict) and "error" in payload:
-        return {"error": f"Token verification failed: {payload['error']}"}
-    
-    # Check if user is admin - fix the payload structure check
-    if not payload.get("is_admin", False):
-        return {"error": "Unauthorized access: Not an admin"}
+    if "error" in payload or not payload.get("is_admin", False):
+        return {"error": "Unauthorized access"}
     
     connection = get_db_connection()
     if connection is None:
@@ -131,7 +123,6 @@ def create_exhibition(auth_header, exhibition_data):
     cursor = connection.cursor()
     
     try:
-        print(f"Inserting exhibition data: {exhibition_data}")
         query = """
         INSERT INTO exhibitions (title, description, location, start_date, end_date,
                                ticket_price, image_url, total_slots, available_slots, status)
@@ -176,19 +167,10 @@ def update_exhibition(auth_header, exhibition_id, exhibition_data):
     if not token:
         return {"error": "Invalid authentication token"}
     
-    # Debug token verification
-    print(f"Verifying token for update_exhibition: {token}")
-    
     # Verify token and check if user is admin
     payload = verify_token(token)
-    print(f"Token verification result: {payload}")
-    
-    if isinstance(payload, dict) and "error" in payload:
-        return {"error": f"Token verification failed: {payload['error']}"}
-    
-    # Check if user is admin - fix the payload structure check
-    if not payload.get("is_admin", False):
-        return {"error": "Unauthorized access: Not an admin"}
+    if "error" in payload or not payload.get("is_admin", False):
+        return {"error": "Unauthorized access"}
     
     connection = get_db_connection()
     if connection is None:
@@ -242,19 +224,10 @@ def delete_exhibition(auth_header, exhibition_id):
     if not token:
         return {"error": "Invalid authentication token"}
     
-    # Debug token verification
-    print(f"Verifying token for delete_exhibition: {token}")
-    
     # Verify token and check if user is admin
     payload = verify_token(token)
-    print(f"Token verification result: {payload}")
-    
-    if isinstance(payload, dict) and "error" in payload:
-        return {"error": f"Token verification failed: {payload['error']}"}
-    
-    # Check if user is admin - fix the payload structure check
-    if not payload.get("is_admin", False):
-        return {"error": "Unauthorized access: Not an admin"}
+    if "error" in payload or not payload.get("is_admin", False):
+        return {"error": "Unauthorized access"}
     
     connection = get_db_connection()
     if connection is None:

@@ -10,7 +10,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
             <h3 className="font-serif text-xl font-bold mb-4">
-              <span className="text-gold">The Art Gallery</span> of Nairobi
+              <span className="text-gold">Afri</span>Art
             </h3>
             <p className="text-gray-300 mb-4">
               Showcasing the finest artworks and exhibitions from talented Kenyan artists.
@@ -77,14 +77,14 @@ const Footer = () => {
               </li>
               <li className="flex items-center">
                 <Mail className="h-5 w-5 mr-2 text-gold" />
-                <span>info@artgallerynairobi.co.ke</span>
+                <span>info@afriart.co.ke</span>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400 text-sm">
-          <p>&copy; {new Date().getFullYear()} The Art Gallery of Nairobi. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} AfriArt. All rights reserved.</p>
         </div>
       </div>
     </footer>

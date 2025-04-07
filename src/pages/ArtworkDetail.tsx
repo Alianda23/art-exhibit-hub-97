@@ -9,7 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import ArtworkCard from '@/components/ArtworkCard';
 import { Artwork } from '@/types';
 import { getArtwork, getAllArtworks } from '@/services/api';
-import { Ban } from 'lucide-react';
 
 const ArtworkDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -86,29 +85,19 @@ const ArtworkDetail = () => {
     );
   }
 
-  const isSold = artwork.status === 'sold';
-
   return (
     <div className="py-12 px-4 md:px-6 bg-secondary min-h-screen">
       <div className="container mx-auto">
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="grid md:grid-cols-2 gap-6 lg:gap-12">
             <div className="p-6 lg:p-8">
-              <div className="relative">
-                <AspectRatio ratio={3/4} className="overflow-hidden rounded-lg">
-                  <img 
-                    src={artwork.imageUrl} 
-                    alt={artwork.title}
-                    className="w-full h-full object-cover"
-                  />
-                </AspectRatio>
-                {isSold && (
-                  <div className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md font-medium flex items-center gap-2">
-                    <Ban className="h-5 w-5" />
-                    <span>Sold</span>
-                  </div>
-                )}
-              </div>
+              <AspectRatio ratio={3/4} className="overflow-hidden rounded-lg">
+                <img 
+                  src={artwork.imageUrl} 
+                  alt={artwork.title}
+                  className="w-full h-full object-cover"
+                />
+              </AspectRatio>
             </div>
             
             <div className="p-6 lg:p-8 flex flex-col">
@@ -122,7 +111,7 @@ const ArtworkDetail = () => {
                   {formatPrice(artwork.price)}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  {isSold ? 'Sold' : 'Available for Purchase'}
+                  {artwork.status === 'available' ? 'Available for Purchase' : 'Sold'}
                 </p>
               </div>
               
@@ -149,14 +138,10 @@ const ArtworkDetail = () => {
               <div className="mt-auto">
                 <Button 
                   onClick={handleBuyNow}
-                  className={`w-full py-6 text-lg ${
-                    isSold 
-                      ? 'bg-gray-400 hover:bg-gray-400 text-white cursor-not-allowed' 
-                      : 'bg-gold hover:bg-gold-dark text-white'
-                  }`}
-                  disabled={isSold}
+                  className="w-full bg-gold hover:bg-gold-dark text-white py-6 text-lg"
+                  disabled={artwork.status !== 'available'}
                 >
-                  {isSold ? 'Sold Out' : 'Buy Now'}
+                  {artwork.status === 'available' ? 'Buy Now' : 'Sold Out'}
                 </Button>
               </div>
             </div>

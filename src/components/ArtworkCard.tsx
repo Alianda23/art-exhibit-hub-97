@@ -5,7 +5,6 @@ import { Artwork } from '@/types';
 import { formatPrice } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { Ban } from 'lucide-react';
 
 interface ArtworkCardProps {
   artwork: Artwork;
@@ -14,7 +13,7 @@ interface ArtworkCardProps {
 const ArtworkCard = ({ artwork }: ArtworkCardProps) => {
   return (
     <div className="group rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300">
-      <div className="image-container relative">
+      <div className="image-container">
         <AspectRatio ratio={3/4}>
           <img
             src={artwork.imageUrl}
@@ -22,12 +21,6 @@ const ArtworkCard = ({ artwork }: ArtworkCardProps) => {
             className="w-full h-full object-cover"
           />
         </AspectRatio>
-        {artwork.status === 'sold' && (
-          <div className="absolute top-0 right-0 bg-red-500 text-white px-3 py-1 rounded-bl-lg font-medium flex items-center gap-1">
-            <Ban className="h-4 w-4" />
-            <span>Sold</span>
-          </div>
-        )}
       </div>
       <div className="p-4">
         <h3 className="font-serif text-xl font-semibold mb-1 group-hover:text-gold transition-colors">

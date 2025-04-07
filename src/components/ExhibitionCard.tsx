@@ -5,18 +5,16 @@ import { Exhibition } from '@/types';
 import { formatPrice, formatDateRange } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { MapPin, Calendar, Ban } from 'lucide-react';
+import { MapPin, Calendar } from 'lucide-react';
 
 interface ExhibitionCardProps {
   exhibition: Exhibition;
 }
 
 const ExhibitionCard = ({ exhibition }: ExhibitionCardProps) => {
-  const isSoldOut = exhibition.availableSlots === 0;
-
   return (
     <div className="group rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300">
-      <div className="image-container relative">
+      <div className="image-container">
         <AspectRatio ratio={16/9}>
           <img
             src={exhibition.imageUrl}
@@ -24,12 +22,6 @@ const ExhibitionCard = ({ exhibition }: ExhibitionCardProps) => {
             className="w-full h-full object-cover"
           />
         </AspectRatio>
-        {isSoldOut && (
-          <div className="absolute top-0 right-0 bg-red-500 text-white px-3 py-1 rounded-bl-lg font-medium flex items-center gap-1">
-            <Ban className="h-4 w-4" />
-            <span>Sold Out</span>
-          </div>
-        )}
       </div>
       <div className="p-4">
         <h3 className="font-serif text-xl font-semibold mb-2 group-hover:text-gold transition-colors">
@@ -48,11 +40,7 @@ const ExhibitionCard = ({ exhibition }: ExhibitionCardProps) => {
             {formatPrice(exhibition.ticketPrice)}
           </p>
           <p className="text-sm text-gray-600">
-            {isSoldOut ? (
-              <span className="text-red-500 font-medium">No slots available</span>
-            ) : (
-              `${exhibition.availableSlots} slots available`
-            )}
+            {exhibition.availableSlots} slots available
           </p>
         </div>
         <Link to={`/exhibitions/${exhibition.id}`}>

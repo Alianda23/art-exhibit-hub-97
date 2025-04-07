@@ -153,7 +153,7 @@ const ExhibitionCheckout = () => {
                         readOnly
                         className="bg-gray-100"
                       />
-                      <p className="text-sm text-gray-500 mt-1">Email from your account (ticket will be sent here)</p>
+                      <p className="text-sm text-gray-500 mt-1">Email from your account</p>
                     </div>
                     
                     <div className="pt-4">

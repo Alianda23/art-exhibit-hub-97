@@ -1,106 +1,71 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { formatPrice, formatDate } from '@/utils/formatters';
-import { CalendarIcon, MapPinIcon, UserIcon, PhoneIcon, MailIcon, Loader2 } from 'lucide-react';
-import { getUserOrders, generateExhibitionTicket } from '@/utils/mpesa';
-import { useToast } from '@/hooks/use-toast';
+import { CalendarIcon, MapPinIcon, UserIcon, PhoneIcon, MailIcon } from 'lucide-react';
 
-type UserOrder = {
-  id: string;
-  artworkId: string;
-  artworkTitle: string;
-  artist: string;
-  date: string;
-  price: number;
-  deliveryFee: number;
-  totalAmount: number;
-  status: string;
-  deliveryAddress: string;
-};
+// Mock data for bookings and orders
+const mockBookings = [
+  {
+    id: 'booking1',
+    exhibitionId: 'exh1',
+    exhibitionTitle: 'Contemporary Kenyan Visions',
+    date: '2023-09-20',
+    location: 'Nairobi National Museum, Nairobi',
+    slots: 2,
+    totalAmount: 3000,
+    status: 'confirmed'
+  },
+  {
+    id: 'booking2',
+    exhibitionId: 'exh3',
+    exhibitionTitle: 'Coastal Textures: Art from the Kenyan Shore',
+    date: '2023-10-15',
+    location: 'Fort Jesus Museum, Mombasa',
+    slots: 1,
+    totalAmount: 1200,
+    status: 'confirmed'
+  }
+];
 
-type UserBooking = {
-  id: string;
-  exhibitionId: string;
-  exhibitionTitle: string;
-  date: string;
-  location: string;
-  slots: number;
-  totalAmount: number;
-  status: string;
-};
+const mockOrders = [
+  {
+    id: 'order1',
+    artworkId: 'art1',
+    artworkTitle: 'Maasai Market Sunset',
+    artist: 'James Mwangi',
+    date: '2023-09-15',
+    price: 45000,
+    status: 'delivered'
+  },
+  {
+    id: 'order2',
+    artworkId: 'art5',
+    artworkTitle: 'Lake Turkana Dreams',
+    artist: 'Michael Kimani',
+    date: '2023-08-28',
+    price: 62000,
+    status: 'processing'
+  }
+];
 
 const Profile = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('profile');
-  const [orders, setOrders] = useState<UserOrder[]>([]);
-  const [bookings, setBookings] = useState<UserBooking[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (currentUser) {
-      fetchUserOrders();
-    }
-  }, [currentUser]);
 
   if (!currentUser) {
     navigate('/login');
     return null;
   }
 
-  const fetchUserOrders = async () => {
-    if (!currentUser.id) return;
-    
-    setLoading(true);
-    try {
-      const response = await getUserOrders(currentUser.id);
-      
-      if (response.orders) {
-        setOrders(response.orders);
-      }
-      
-      if (response.bookings) {
-        setBookings(response.bookings);
-      }
-    } catch (error) {
-      console.error('Error fetching user orders:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load your orders and bookings",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleLogout = () => {
     logout();
     navigate('/');
-  };
-
-  const handlePrintTicket = async (bookingId: string) => {
-    try {
-      const response = await generateExhibitionTicket(bookingId);
-      if (response.ticketUrl) {
-        window.open(response.ticketUrl, '_blank');
-      } else {
-        throw new Error('Failed to generate ticket');
-      }
-    } catch (error) {
-      console.error('Error generating ticket:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate ticket. Please try again.",
-        variant: "destructive"
-      });
-    }
   };
 
   return (
@@ -177,15 +142,9 @@ const Profile = () => {
 
           <TabsContent value="bookings" className="p-6">
             <h2 className="text-xl font-serif font-semibold mb-4">Your Exhibition Bookings</h2>
-            
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-gold" />
-                <span className="ml-2">Loading your bookings...</span>
-              </div>
-            ) : bookings.length > 0 ? (
+            {mockBookings.length > 0 ? (
               <div className="space-y-4">
-                {bookings.map((booking) => (
+                {mockBookings.map((booking) => (
                   <Card key={booking.id} className="overflow-hidden">
                     <CardContent className="p-6">
                       <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
@@ -209,17 +168,8 @@ const Profile = () => {
                             <span className="text-gray-600">Total: </span>
                             <span className="font-medium">{formatPrice(booking.totalAmount)}</span>
                           </div>
-                          <div className="flex flex-col sm:flex-row gap-2 mt-3">
-                            <div className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                              {booking.status}
-                            </div>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => handlePrintTicket(booking.id)}
-                            >
-                              Print Ticket
-                            </Button>
+                          <div className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                            {booking.status}
                           </div>
                         </div>
                       </div>
@@ -242,15 +192,9 @@ const Profile = () => {
 
           <TabsContent value="orders" className="p-6">
             <h2 className="text-xl font-serif font-semibold mb-4">Your Artwork Orders</h2>
-            
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-gold" />
-                <span className="ml-2">Loading your orders...</span>
-              </div>
-            ) : orders.length > 0 ? (
+            {mockOrders.length > 0 ? (
               <div className="space-y-4">
-                {orders.map((order) => (
+                {mockOrders.map((order) => (
                   <Card key={order.id} className="overflow-hidden">
                     <CardContent className="p-6">
                       <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
@@ -261,28 +205,14 @@ const Profile = () => {
                             <CalendarIcon className="h-4 w-4 mr-1 text-gold" />
                             <span className="text-sm">Ordered on {formatDate(order.date)}</span>
                           </div>
-                          <div className="text-gray-600 mt-2 text-sm">
-                            <p><strong>Delivery Address:</strong></p>
-                            <p>{order.deliveryAddress}</p>
-                          </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm mb-1">
+                          <div className="text-sm mb-2">
                             <span className="text-gray-600">Price: </span>
                             <span className="font-medium">{formatPrice(order.price)}</span>
                           </div>
-                          <div className="text-sm mb-1">
-                            <span className="text-gray-600">Delivery: </span>
-                            <span className="font-medium">{formatPrice(order.deliveryFee)}</span>
-                          </div>
-                          <div className="text-sm mb-2">
-                            <span className="text-gray-600">Total: </span>
-                            <span className="font-medium">{formatPrice(order.totalAmount)}</span>
-                          </div>
                           <div className={`inline-block px-3 py-1 rounded-full text-xs font-medium
-                            ${order.status === 'delivered' ? 'bg-green-100 text-green-800' : 
-                              order.status === 'processing' ? 'bg-blue-100 text-blue-800' : 
-                              'bg-yellow-100 text-yellow-800'}
+                            ${order.status === 'delivered' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}
                           `}>
                             {order.status}
                           </div>

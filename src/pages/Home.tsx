@@ -1,52 +1,22 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowRight, MapPin, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPrice, formatDateRange } from '@/utils/formatters';
+import { artworks, exhibitions } from '@/data/mockData';
 import ArtworkCard from '@/components/ArtworkCard';
 import ExhibitionCard from '@/components/ExhibitionCard';
-import { getAllArtworks, getAllExhibitions } from '@/services/api';
-import { Artwork, Exhibition } from '@/types';
-import { useToast } from '@/hooks/use-toast';
 
 const Home = () => {
-  const [featuredArtworks, setFeaturedArtworks] = useState<Artwork[]>([]);
-  const [featuredExhibitions, setFeaturedExhibitions] = useState<Exhibition[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const featuredArtworks = artworks.slice(0, 3);
+  const featuredExhibitions = exhibitions.slice(0, 2);
   
   const aboutRef = useRef<HTMLDivElement>(null);
   const artworksRef = useRef<HTMLDivElement>(null);
   const exhibitionsRef = useRef<HTMLDivElement>(null);
   const contactRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const artworksData = await getAllArtworks();
-        const exhibitionsData = await getAllExhibitions();
-        
-        // Get first 3 artworks
-        setFeaturedArtworks(artworksData.slice(0, 3));
-        
-        // Get first 3 exhibitions
-        setFeaturedExhibitions(exhibitionsData.slice(0, 2));
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load featured items. Please try again later.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [toast]);
 
   const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
     ref.current?.scrollIntoView({ behavior: 'smooth' });
@@ -151,15 +121,9 @@ const Home = () => {
           </div>
           
           <div className="artwork-grid">
-            {loading ? (
-              <p className="text-center w-full">Loading artworks...</p>
-            ) : featuredArtworks.length > 0 ? (
-              featuredArtworks.map((artwork) => (
-                <ArtworkCard key={artwork.id} artwork={artwork} />
-              ))
-            ) : (
-              <p className="text-center w-full">No artworks found</p>
-            )}
+            {featuredArtworks.map((artwork) => (
+              <ArtworkCard key={artwork.id} artwork={artwork} />
+            ))}
           </div>
         </div>
       </section>
@@ -179,15 +143,9 @@ const Home = () => {
           </div>
           
           <div className="exhibition-grid">
-            {loading ? (
-              <p className="text-center w-full">Loading exhibitions...</p>
-            ) : featuredExhibitions.length > 0 ? (
-              featuredExhibitions.map((exhibition) => (
-                <ExhibitionCard key={exhibition.id} exhibition={exhibition} />
-              ))
-            ) : (
-              <p className="text-center w-full">No exhibitions found</p>
-            )}
+            {featuredExhibitions.map((exhibition) => (
+              <ExhibitionCard key={exhibition.id} exhibition={exhibition} />
+            ))}
           </div>
         </div>
       </section>

@@ -7,23 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const { adminLogin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     
     if (!email || !password) {
-      setError("Please enter both email and password");
       toast({
         title: "Error",
         description: "Please enter both email and password",
@@ -35,10 +31,7 @@ const AdminLogin = () => {
     setLoading(true);
     
     try {
-      console.log("Attempting admin login with:", { email });
       const success = await adminLogin(email, password);
-      
-      console.log("Admin login result:", success);
       
       if (success) {
         toast({
@@ -47,7 +40,6 @@ const AdminLogin = () => {
         });
         navigate("/admin");
       } else {
-        setError("Invalid admin credentials");
         toast({
           title: "Error",
           description: "Invalid admin credentials",
@@ -55,11 +47,9 @@ const AdminLogin = () => {
         });
       }
     } catch (error) {
-      console.error("Admin login error:", error);
-      setError("Connection error. Please try again later.");
       toast({
         title: "Error",
-        description: "An error occurred during login. Please check if the server is running.",
+        description: "An error occurred during login",
         variant: "destructive",
       });
     } finally {
@@ -86,7 +76,6 @@ const AdminLogin = () => {
                 placeholder="admin@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -97,30 +86,20 @@ const AdminLogin = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
               />
             </div>
-            {error && (
-              <div className="text-red-500 text-sm py-2">{error}</div>
-            )}
             <Button 
               type="submit" 
               className="w-full bg-charcoal hover:bg-charcoal-light text-white"
               disabled={loading}
             >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                  Logging in...
-                </>
-              ) : (
-                "Admin Sign In"
-              )}
+              {loading ? "Logging in..." : "Admin Sign In"}
             </Button>
           </form>
         </CardContent>
         <CardFooter>
           <div className="text-center text-sm w-full">
+            Not an admin?{" "}
             <Link to="/login" className="text-gold hover:underline">
               Regular User Login
             </Link>
