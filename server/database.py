@@ -7,7 +7,7 @@ DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',  # Update with your MySQL username
     'password': '',  # Update with your MySQL password
-    'database': 'afriart_db'
+    'database': 'artgallery'
 }
 
 def get_db_connection():

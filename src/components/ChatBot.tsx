@@ -172,7 +172,7 @@ Message: ${contactInfo.message}
       // Add confirmation message
       setMessages(prev => [...prev, {
         id: Date.now(),
-        content: "Thank you! Your information has been sent to our team. We'll get back to you as soon as possible via WhatsApp or email.",
+        content: "Thank you! Your information has been sent to our team. We'll get back to you as soon as possible via WhatsApp (+254741080177) or email.",
         sender: 'bot',
         timestamp: new Date()
       }]);

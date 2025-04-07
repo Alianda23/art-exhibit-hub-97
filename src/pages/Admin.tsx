@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { isAdmin } from '@/services/api';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, ShoppingBag, Ticket } from 'lucide-react';
+import { MessageSquare, ShoppingBag, Ticket, Image, Calendar } from 'lucide-react';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -21,6 +21,52 @@ const Admin = () => {
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
       
       <div className="grid gap-6 md:grid-cols-3">
+        {/* Artworks Management */}
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+            <CardTitle className="flex items-center">
+              <Image className="mr-2 h-6 w-6" />
+              Artworks
+            </CardTitle>
+            <CardDescription className="text-white text-opacity-80">
+              Manage gallery artworks
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <p className="text-gray-600 mb-6">
+              Add, edit, and delete artworks displayed in the gallery.
+            </p>
+          </CardContent>
+          <CardFooter className="bg-gray-50 px-6 py-4">
+            <Button asChild className="w-full">
+              <Link to="/admin/artworks">Manage Artworks</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        {/* Exhibitions Management */}
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white">
+            <CardTitle className="flex items-center">
+              <Calendar className="mr-2 h-6 w-6" />
+              Exhibitions
+            </CardTitle>
+            <CardDescription className="text-white text-opacity-80">
+              Manage gallery exhibitions
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <p className="text-gray-600 mb-6">
+              Create and manage upcoming, ongoing, and past exhibitions.
+            </p>
+          </CardContent>
+          <CardFooter className="bg-gray-50 px-6 py-4">
+            <Button asChild className="w-full">
+              <Link to="/admin/exhibitions">Manage Exhibitions</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+        
         {/* Messages Management */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
@@ -84,7 +130,7 @@ const Admin = () => {
             </p>
           </CardContent>
           <CardFooter className="bg-gray-50 px-6 py-4">
-            <Button asChild className="w-full bg-amber-500 hover:bg-amber-600">
+            <Button asChild className="w-full">
               <Link to="/admin/orders">Manage Orders</Link>
             </Button>
           </CardFooter>
