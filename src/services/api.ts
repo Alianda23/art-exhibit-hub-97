@@ -240,6 +240,13 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
       throw new Error('Session expired. Please login again.');
     }
     
+    if (response.status === 403) {
+      console.log('403 Forbidden error - Access denied');
+      // Get more details from the response
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Access denied. Please check your permissions.');
+    }
+    
     const data = await response.json();
     
     // Log response for debugging

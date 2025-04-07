@@ -1,4 +1,3 @@
-
 from database import get_db_connection, dict_from_row
 from auth import verify_token
 
@@ -118,9 +117,10 @@ def create_exhibition(auth_header, exhibition_data):
     payload = verify_token(token)
     print(f"Token verification result: {payload}")
     
-    if "error" in payload:
+    if isinstance(payload, dict) and "error" in payload:
         return {"error": f"Token verification failed: {payload['error']}"}
     
+    # Check if user is admin - fix the payload structure check
     if not payload.get("is_admin", False):
         return {"error": "Unauthorized access: Not an admin"}
     
@@ -183,9 +183,10 @@ def update_exhibition(auth_header, exhibition_id, exhibition_data):
     payload = verify_token(token)
     print(f"Token verification result: {payload}")
     
-    if "error" in payload:
+    if isinstance(payload, dict) and "error" in payload:
         return {"error": f"Token verification failed: {payload['error']}"}
     
+    # Check if user is admin - fix the payload structure check
     if not payload.get("is_admin", False):
         return {"error": "Unauthorized access: Not an admin"}
     
@@ -248,9 +249,10 @@ def delete_exhibition(auth_header, exhibition_id):
     payload = verify_token(token)
     print(f"Token verification result: {payload}")
     
-    if "error" in payload:
+    if isinstance(payload, dict) and "error" in payload:
         return {"error": f"Token verification failed: {payload['error']}"}
     
+    # Check if user is admin - fix the payload structure check
     if not payload.get("is_admin", False):
         return {"error": "Unauthorized access: Not an admin"}
     
