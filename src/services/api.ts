@@ -213,13 +213,18 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
   }
   
   const headers = {
-    ...options.headers,
+    ...(options.headers || {}),
     'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
   };
   
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    
+    console.log(`Making authenticated request to: ${API_URL}${url}`);
+    console.log('Using token:', token);
+    console.log('Request options:', { ...options, headers });
     
     const response = await fetch(`${API_URL}${url}`, {
       ...options,
@@ -235,7 +240,17 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
       throw new Error('Session expired. Please login again.');
     }
     
-    return await response.json();
+    const data = await response.json();
+    
+    // Log response for debugging
+    console.log('Response status:', response.status);
+    console.log('Response data:', data);
+    
+    if (!response.ok) {
+      throw new Error(data.error || `Request failed with status ${response.status}`);
+    }
+    
+    return data;
   } catch (error) {
     console.error('API request error:', error);
     if (error instanceof DOMException && error.name === 'AbortError') {
@@ -276,11 +291,9 @@ export const getArtwork = async (id: string) => {
 
 // Create a new artwork (admin only)
 export const createArtwork = async (artworkData: ArtworkData) => {
+  console.log('Creating artwork with data:', artworkData);
   return await authFetch('/artworks', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(artworkData),
   });
 };
@@ -289,9 +302,6 @@ export const createArtwork = async (artworkData: ArtworkData) => {
 export const updateArtwork = async (id: string, artworkData: ArtworkData) => {
   return await authFetch(`/artworks/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(artworkData),
   });
 };
@@ -334,11 +344,9 @@ export const getExhibition = async (id: string) => {
 
 // Create a new exhibition (admin only)
 export const createExhibition = async (exhibitionData: ExhibitionData) => {
+  console.log('Creating exhibition with data:', exhibitionData);
   return await authFetch('/exhibitions', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(exhibitionData),
   });
 };
@@ -347,9 +355,6 @@ export const createExhibition = async (exhibitionData: ExhibitionData) => {
 export const updateExhibition = async (id: string, exhibitionData: ExhibitionData) => {
   return await authFetch(`/exhibitions/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(exhibitionData),
   });
 };
@@ -392,9 +397,6 @@ export const getAllContactMessages = async () => {
 export const updateMessageStatus = async (id: string, status: 'new' | 'read' | 'replied') => {
   return await authFetch(`/messages/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify({ status }),
   });
 };
