@@ -10,6 +10,7 @@ import { formatPrice } from '@/utils/formatters';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Check } from 'lucide-react';
 
 const ArtworkCheckout = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ const ArtworkCheckout = () => {
     deliveryAddress: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
   const artwork = useMemo(() => {
     return artworks.find((a) => a.id === id);
@@ -46,10 +48,10 @@ const ArtworkCheckout = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleContinue = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form
+    // Validate form for first step
     if (!formData.deliveryAddress) {
       toast({
         title: "Error",
@@ -59,6 +61,11 @@ const ArtworkCheckout = () => {
       return;
     }
     
+    setCurrentStep(2);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSubmitting(true);
     
     // Store order details in localStorage for the payment page
@@ -83,7 +90,29 @@ const ArtworkCheckout = () => {
       <div className="container mx-auto max-w-4xl">
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-6 md:p-8">
-            <h1 className="font-serif text-3xl font-bold mb-8 text-center">Delivery Details</h1>
+            <div className="mb-8">
+              <div className="flex justify-center">
+                <div className="flex items-center">
+                  <div className={`w-8 h-8 flex items-center justify-center rounded-full ${currentStep >= 1 ? 'bg-gold text-white' : 'bg-gray-200'}`}>
+                    {currentStep > 1 ? <Check className="h-5 w-5" /> : 1}
+                  </div>
+                  <div className={`h-1 w-20 ${currentStep >= 2 ? 'bg-gold' : 'bg-gray-200'}`}></div>
+                  <div className={`w-8 h-8 flex items-center justify-center rounded-full ${currentStep >= 2 ? 'bg-gold text-white' : 'bg-gray-200'}`}>
+                    2
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-center mt-2">
+                <div className="flex text-sm">
+                  <div className="w-20 text-center">Delivery</div>
+                  <div className="w-20 text-center">Review & Pay</div>
+                </div>
+              </div>
+            </div>
+            
+            <h1 className="font-serif text-3xl font-bold mb-8 text-center">
+              {currentStep === 1 ? "Delivery Details" : "Review & Payment"}
+            </h1>
             
             <div className="grid md:grid-cols-[1fr_2fr] gap-8 mb-8">
               <div>
@@ -121,57 +150,109 @@ const ArtworkCheckout = () => {
               </div>
               
               <div>
-                <form onSubmit={handleSubmit}>
-                  <div className="space-y-6">
-                    <div>
-                      <Label htmlFor="name">Full Name</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        readOnly
-                        className="bg-gray-100"
-                      />
-                      <p className="text-sm text-gray-500 mt-1">Name from your account</p>
+                {currentStep === 1 ? (
+                  <form onSubmit={handleContinue}>
+                    <div className="space-y-6">
+                      <div>
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          value={formData.name}
+                          readOnly
+                          className="bg-gray-100"
+                        />
+                        <p className="text-sm text-gray-500 mt-1">Name from your account</p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          readOnly
+                          className="bg-gray-100"
+                        />
+                        <p className="text-sm text-gray-500 mt-1">Email from your account</p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="deliveryAddress">Delivery Address *</Label>
+                        <Textarea
+                          id="deliveryAddress"
+                          name="deliveryAddress"
+                          value={formData.deliveryAddress}
+                          onChange={handleInputChange}
+                          rows={3}
+                          required
+                          placeholder="Enter your full delivery address"
+                        />
+                      </div>
+                      
+                      <div className="pt-4">
+                        <Button 
+                          type="submit" 
+                          className="w-full bg-gold hover:bg-gold-dark text-white py-6 text-lg"
+                        >
+                          Continue to Review
+                        </Button>
+                      </div>
                     </div>
-                    
-                    <div>
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        readOnly
-                        className="bg-gray-100"
-                      />
-                      <p className="text-sm text-gray-500 mt-1">Email from your account</p>
+                  </form>
+                ) : (
+                  <form onSubmit={handleSubmit}>
+                    <div className="space-y-6">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-medium mb-3">Customer Information</h3>
+                        <div className="grid grid-cols-2 gap-y-2 text-sm">
+                          <div className="text-gray-600">Name:</div>
+                          <div>{formData.name}</div>
+                          <div className="text-gray-600">Email:</div>
+                          <div>{formData.email}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-medium mb-3">Delivery Address</h3>
+                        <p className="text-sm">{formData.deliveryAddress}</p>
+                      </div>
+                      
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-medium mb-3">Order Details</h3>
+                        <div className="grid grid-cols-2 gap-y-2 text-sm">
+                          <div className="text-gray-600">Artwork:</div>
+                          <div>{artwork.title} by {artwork.artist}</div>
+                          <div className="text-gray-600">Artwork Price:</div>
+                          <div>{formatPrice(artwork.price)}</div>
+                          <div className="text-gray-600">Delivery Fee:</div>
+                          <div>{formatPrice(1000)}</div>
+                          <div className="text-gray-600">Total Amount:</div>
+                          <div className="font-semibold">{formatPrice(artwork.price + 1000)}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-3 pt-4">
+                        <Button 
+                          type="button"
+                          variant="outline"
+                          className="w-1/3"
+                          onClick={() => setCurrentStep(1)}
+                        >
+                          Back
+                        </Button>
+                        <Button 
+                          type="submit" 
+                          className="w-2/3 bg-gold hover:bg-gold-dark text-white py-6 text-lg"
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? "Processing..." : "Continue to Payment"}
+                        </Button>
+                      </div>
                     </div>
-                    
-                    <div>
-                      <Label htmlFor="deliveryAddress">Delivery Address *</Label>
-                      <Textarea
-                        id="deliveryAddress"
-                        name="deliveryAddress"
-                        value={formData.deliveryAddress}
-                        onChange={handleInputChange}
-                        rows={3}
-                        required
-                        placeholder="Enter your full delivery address"
-                      />
-                    </div>
-                    
-                    <div className="pt-4">
-                      <Button 
-                        type="submit" 
-                        className="w-full bg-gold hover:bg-gold-dark text-white py-6 text-lg"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? "Processing..." : "Continue to Payment"}
-                      </Button>
-                    </div>
-                  </div>
-                </form>
+                  </form>
+                )}
               </div>
             </div>
           </div>

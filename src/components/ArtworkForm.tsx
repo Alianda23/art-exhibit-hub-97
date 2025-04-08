@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,13 +16,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArtworkData } from "@/services/api";
+import { ImageUp } from "lucide-react";
+
+const MAX_FILE_SIZE = 5000000; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const artworkSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters" }),
   artist: z.string().min(3, { message: "Artist name must be at least 3 characters" }),
   description: z.string().min(10, { message: "Description must be at least 10 characters" }),
   price: z.coerce.number().min(0, { message: "Price must be a positive number" }),
-  imageUrl: z.string().url({ message: "Please enter a valid image URL" }),
+  imageUrl: z.string().url({ message: "Please enter a valid image URL" }).optional(),
   dimensions: z.string().optional(),
   medium: z.string().optional(),
   year: z.coerce.number().int().min(1000).max(new Date().getFullYear()).optional(),
@@ -43,6 +47,8 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
   onCancel,
 }) => {
   const { toast } = useToast();
+  const [previewImage, setPreviewImage] = useState<string | null>(initialData?.imageUrl || null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   
   const defaultValues = initialData || {
     title: "",
@@ -61,9 +67,70 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
     defaultValues,
   });
 
-  const handleSubmit = (values: ArtworkFormValues) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Image size should be less than 5MB",
+      });
+      return;
+    }
+    
+    // Validate file type
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Image format should be JPG, PNG or WebP",
+      });
+      return;
+    }
+    
+    setImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreviewImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (values: ArtworkFormValues) => {
     try {
-      onSubmit(values as ArtworkData);
+      // If there's a new image file, let's prepare it for upload first
+      let imageUrl = values.imageUrl || initialData?.imageUrl || "";
+      
+      if (imageFile) {
+        // In a real implementation, you would upload the file to a server here
+        // and get back the URL. For now, we'll simulate this with local URL.
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        
+        // Just use the local preview as the URL for now
+        // In production, you would upload to server and get a real URL back
+        imageUrl = previewImage || "";
+        
+        toast({
+          title: "Image Ready",
+          description: "Image prepared for upload",
+        });
+      }
+      
+      // Include the image URL in the submission data
+      onSubmit({
+        ...values,
+        imageUrl,
+        price: values.price, // Keep the price as is - already in KSh
+      } as ArtworkData);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -119,19 +186,58 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
           )}
         />
         
-        <FormField
-          control={form.control}
-          name="imageUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Image URL</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/image.jpg" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-2">
+          <FormLabel>Artwork Image</FormLabel>
+          <div className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg">
+            {previewImage && (
+              <div className="mb-4 w-full max-w-xs">
+                <img 
+                  src={previewImage} 
+                  alt="Artwork preview" 
+                  className="w-full h-auto rounded-lg"
+                />
+              </div>
+            )}
+            
+            <label className="w-full flex flex-col items-center px-4 py-6 bg-white rounded-lg cursor-pointer hover:bg-gray-50">
+              <ImageUp className="w-8 h-8 text-gray-500" />
+              <span className="mt-2 text-base text-gray-500">
+                {previewImage ? "Change image" : "Upload image"}
+              </span>
+              <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
+            </label>
+            
+            {previewImage && (
+              <p className="text-sm text-gray-500 mt-2">
+                Click above to change the image
+              </p>
+            )}
+            
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem className="w-full mt-4">
+                  <FormLabel>Or use image URL</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="https://example.com/image.jpg" 
+                      {...field} 
+                      onChange={(e) => {
+                        field.onChange(e);
+                        if (e.target.value) {
+                          setPreviewImage(e.target.value);
+                          setImageFile(null);
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
@@ -169,7 +275,7 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
             name="price"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Price</FormLabel>
+                <FormLabel>Price (KSh)</FormLabel>
                 <FormControl>
                   <Input type="number" min="0" step="0.01" {...field} />
                 </FormControl>
