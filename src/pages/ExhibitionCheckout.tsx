@@ -52,6 +52,48 @@ const ExhibitionCheckout = () => {
     fetchExhibition();
   }, [id, toast]);
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleContinue = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.phone.trim()) {
+      toast({
+        title: "Phone Required",
+        description: "Please enter your phone number for ticket confirmation.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setCurrentStep(2);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    // Store order details in localStorage for the payment page
+    const orderDetails = {
+      type: 'exhibition',
+      itemId: exhibition?.id,
+      title: exhibition?.title,
+      slots: slots,
+      pricePerSlot: exhibition?.ticketPrice,
+      totalAmount: exhibition ? exhibition.ticketPrice * slots : 0,
+      ...formData
+    };
+    
+    localStorage.setItem('pendingOrder', JSON.stringify(orderDetails));
+    
+    // Navigate to payment page
+    navigate(`/payment`);
+  };
+
   if (loading) {
     return (
       <div className="py-16 px-4 text-center">
@@ -74,32 +116,6 @@ const ExhibitionCheckout = () => {
   }
 
   const totalAmount = exhibition.ticketPrice * slots;
-
-  const handleContinue = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCurrentStep(2);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Store order details in localStorage for the payment page
-    const orderDetails = {
-      type: 'exhibition',
-      itemId: exhibition.id,
-      title: exhibition.title,
-      slots: slots,
-      pricePerSlot: exhibition.ticketPrice,
-      totalAmount: totalAmount,
-      ...formData
-    };
-    
-    localStorage.setItem('pendingOrder', JSON.stringify(orderDetails));
-    
-    // Navigate to payment page
-    navigate(`/payment`);
-  };
 
   return (
     <div className="py-12 px-4 md:px-6 bg-secondary min-h-screen">
@@ -167,6 +183,7 @@ const ExhibitionCheckout = () => {
                           id="name"
                           name="name"
                           value={formData.name}
+                          onChange={handleInputChange}
                           readOnly
                           className="bg-gray-100"
                         />
@@ -180,10 +197,25 @@ const ExhibitionCheckout = () => {
                           name="email"
                           type="email"
                           value={formData.email}
+                          onChange={handleInputChange}
                           readOnly
                           className="bg-gray-100"
                         />
                         <p className="text-sm text-gray-500 mt-1">Email from your account (ticket will be sent here)</p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="phone">Phone Number*</Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          placeholder="Enter your phone number"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          required
+                        />
+                        <p className="text-sm text-gray-500 mt-1">Required for ticket confirmation</p>
                       </div>
                       
                       <div className="pt-4">
@@ -206,6 +238,8 @@ const ExhibitionCheckout = () => {
                           <div>{formData.name}</div>
                           <div className="text-gray-600">Email:</div>
                           <div>{formData.email}</div>
+                          <div className="text-gray-600">Phone:</div>
+                          <div>{formData.phone}</div>
                           <div className="text-gray-600">Tickets:</div>
                           <div>{slots}</div>
                           <div className="text-gray-600">Total Amount:</div>

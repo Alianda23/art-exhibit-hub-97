@@ -1,7 +1,6 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { artworks } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,54 +8,80 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatPrice } from '@/utils/formatters';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { getArtwork } from '@/services/api';
+import { Artwork } from '@/types';
 import { Check } from 'lucide-react';
+
+const DELIVERY_FEE = 500; // KSh 500 for delivery
 
 const ArtworkCheckout = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  
+
   const [formData, setFormData] = useState({
     name: currentUser?.name || '',
     email: currentUser?.email || '',
     phone: currentUser?.phone || '',
     deliveryAddress: '',
+    notes: ''
   });
+  
+  const [artwork, setArtwork] = useState<Artwork | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
-  const artwork = useMemo(() => {
-    return artworks.find((a) => a.id === id);
-  }, [id]);
+  useEffect(() => {
+    const fetchArtwork = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        const data = await getArtwork(id);
+        setArtwork(data);
+      } catch (error) {
+        console.error('Failed to fetch artwork:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load artwork details. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!artwork) {
-    return (
-      <div className="py-16 px-4 text-center">
-        <h1 className="text-2xl font-semibold mb-4">Artwork Not Found</h1>
-        <p className="mb-6">The artwork you're looking for doesn't exist or has been removed.</p>
-        <Button onClick={() => navigate('/artworks')}>
-          Back to Artworks
-        </Button>
-      </div>
-    );
-  }
+    fetchArtwork();
+  }, [id, toast]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleContinue = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form for first step
-    if (!formData.deliveryAddress) {
+    // Validate required fields
+    if (!formData.phone.trim()) {
       toast({
-        title: "Error",
-        description: "Please fill in the delivery address",
-        variant: "destructive"
+        title: "Phone Required",
+        description: "Please enter your phone number for delivery coordination.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!formData.deliveryAddress.trim()) {
+      toast({
+        title: "Address Required",
+        description: "Please enter your delivery address.",
+        variant: "destructive",
       });
       return;
     }
@@ -71,11 +96,11 @@ const ArtworkCheckout = () => {
     // Store order details in localStorage for the payment page
     const orderDetails = {
       type: 'artwork',
-      itemId: artwork.id,
-      title: artwork.title,
-      price: artwork.price,
-      deliveryFee: 1000,
-      totalAmount: artwork.price + 1000,
+      itemId: artwork?.id,
+      title: artwork?.title,
+      price: artwork?.price,
+      deliveryFee: DELIVERY_FEE,
+      totalAmount: artwork ? artwork.price + DELIVERY_FEE : 0,
       ...formData
     };
     
@@ -84,6 +109,29 @@ const ArtworkCheckout = () => {
     // Navigate to payment page
     navigate(`/payment`);
   };
+
+  if (loading) {
+    return (
+      <div className="py-16 px-4 text-center">
+        <h1 className="text-2xl font-semibold mb-4">Loading Artwork...</h1>
+        <p className="mb-6">Please wait while we fetch the artwork details.</p>
+      </div>
+    );
+  }
+
+  if (!artwork) {
+    return (
+      <div className="py-16 px-4 text-center">
+        <h1 className="text-2xl font-semibold mb-4">Artwork Not Found</h1>
+        <p className="mb-6">The artwork you're looking for doesn't exist or has been removed.</p>
+        <Button onClick={() => navigate('/artworks')}>
+          Back to Artworks
+        </Button>
+      </div>
+    );
+  }
+
+  const totalAmount = artwork.price + DELIVERY_FEE;
 
   return (
     <div className="py-12 px-4 md:px-6 bg-secondary min-h-screen">
@@ -111,7 +159,7 @@ const ArtworkCheckout = () => {
             </div>
             
             <h1 className="font-serif text-3xl font-bold mb-8 text-center">
-              {currentStep === 1 ? "Delivery Details" : "Review & Payment"}
+              {currentStep === 1 ? "Delivery Information" : "Review & Payment"}
             </h1>
             
             <div className="grid md:grid-cols-[1fr_2fr] gap-8 mb-8">
@@ -120,29 +168,23 @@ const ArtworkCheckout = () => {
                   <h3 className="font-medium text-lg mb-4">Order Summary</h3>
                   <div className="bg-secondary rounded-lg p-4 mb-4">
                     <div className="mb-4">
-                      <AspectRatio ratio={3/4} className="overflow-hidden rounded-lg mb-3">
-                        <img 
-                          src={artwork.imageUrl} 
-                          alt={artwork.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </AspectRatio>
                       <h4 className="font-medium">{artwork.title}</h4>
-                      <p className="text-sm text-gray-600">by {artwork.artist}</p>
+                      <p className="text-sm text-gray-600">By {artwork.artist}</p>
+                      <p className="text-sm text-gray-600 mt-2">{artwork.medium}, {artwork.size}</p>
                     </div>
                     
                     <div className="border-t border-gray-200 pt-3">
                       <div className="flex justify-between mb-1">
-                        <span>Price:</span>
+                        <span>Artwork:</span>
                         <span>{formatPrice(artwork.price)}</span>
                       </div>
                       <div className="flex justify-between mb-1">
                         <span>Delivery:</span>
-                        <span>{formatPrice(1000)}</span>
+                        <span>{formatPrice(DELIVERY_FEE)}</span>
                       </div>
                       <div className="flex justify-between font-bold text-lg mt-2">
                         <span>Total:</span>
-                        <span>{formatPrice(artwork.price + 1000)}</span>
+                        <span>{formatPrice(totalAmount)}</span>
                       </div>
                     </div>
                   </div>
@@ -159,6 +201,7 @@ const ArtworkCheckout = () => {
                           id="name"
                           name="name"
                           value={formData.name}
+                          onChange={handleInputChange}
                           readOnly
                           className="bg-gray-100"
                         />
@@ -172,6 +215,7 @@ const ArtworkCheckout = () => {
                           name="email"
                           type="email"
                           value={formData.email}
+                          onChange={handleInputChange}
                           readOnly
                           className="bg-gray-100"
                         />
@@ -179,15 +223,41 @@ const ArtworkCheckout = () => {
                       </div>
                       
                       <div>
-                        <Label htmlFor="deliveryAddress">Delivery Address *</Label>
+                        <Label htmlFor="phone">Phone Number*</Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          placeholder="Enter your phone number"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          required
+                        />
+                        <p className="text-sm text-gray-500 mt-1">Required for delivery coordination</p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="deliveryAddress">Delivery Address*</Label>
                         <Textarea
                           id="deliveryAddress"
                           name="deliveryAddress"
+                          placeholder="Enter your full delivery address"
                           value={formData.deliveryAddress}
                           onChange={handleInputChange}
-                          rows={3}
                           required
-                          placeholder="Enter your full delivery address"
+                          rows={3}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="notes">Delivery Notes (Optional)</Label>
+                        <Textarea
+                          id="notes"
+                          name="notes"
+                          placeholder="Any special instructions for delivery"
+                          value={formData.notes}
+                          onChange={handleInputChange}
+                          rows={2}
                         />
                       </div>
                       
@@ -205,34 +275,45 @@ const ArtworkCheckout = () => {
                   <form onSubmit={handleSubmit}>
                     <div className="space-y-6">
                       <div className="bg-gray-50 p-4 rounded-lg">
-                        <h3 className="font-medium mb-3">Customer Information</h3>
+                        <h3 className="font-medium mb-3">Delivery Information</h3>
                         <div className="grid grid-cols-2 gap-y-2 text-sm">
                           <div className="text-gray-600">Name:</div>
                           <div>{formData.name}</div>
                           <div className="text-gray-600">Email:</div>
                           <div>{formData.email}</div>
+                          <div className="text-gray-600">Phone:</div>
+                          <div>{formData.phone}</div>
+                          <div className="text-gray-600">Address:</div>
+                          <div>{formData.deliveryAddress}</div>
+                          {formData.notes && (
+                            <>
+                              <div className="text-gray-600">Notes:</div>
+                              <div>{formData.notes}</div>
+                            </>
+                          )}
                         </div>
                       </div>
                       
                       <div className="bg-gray-50 p-4 rounded-lg">
-                        <h3 className="font-medium mb-3">Delivery Address</h3>
-                        <p className="text-sm">{formData.deliveryAddress}</p>
-                      </div>
-                      
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h3 className="font-medium mb-3">Order Details</h3>
+                        <h3 className="font-medium mb-3">Artwork Details</h3>
                         <div className="grid grid-cols-2 gap-y-2 text-sm">
-                          <div className="text-gray-600">Artwork:</div>
-                          <div>{artwork.title} by {artwork.artist}</div>
-                          <div className="text-gray-600">Artwork Price:</div>
+                          <div className="text-gray-600">Title:</div>
+                          <div>{artwork.title}</div>
+                          <div className="text-gray-600">Artist:</div>
+                          <div>{artwork.artist}</div>
+                          <div className="text-gray-600">Medium:</div>
+                          <div>{artwork.medium}</div>
+                          <div className="text-gray-600">Size:</div>
+                          <div>{artwork.size}</div>
+                          <div className="text-gray-600">Price:</div>
                           <div>{formatPrice(artwork.price)}</div>
                           <div className="text-gray-600">Delivery Fee:</div>
-                          <div>{formatPrice(1000)}</div>
-                          <div className="text-gray-600">Total Amount:</div>
-                          <div className="font-semibold">{formatPrice(artwork.price + 1000)}</div>
+                          <div>{formatPrice(DELIVERY_FEE)}</div>
+                          <div className="text-gray-600 font-medium">Total:</div>
+                          <div className="font-semibold">{formatPrice(totalAmount)}</div>
                         </div>
                       </div>
-                      
+
                       <div className="flex gap-3 pt-4">
                         <Button 
                           type="button"

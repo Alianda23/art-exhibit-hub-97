@@ -69,7 +69,7 @@ function App() {
             <Footer />
           </>
         } />
-        <Route path="/artwork-checkout/:id" element={
+        <Route path="/checkout/artwork/:id" element={
           <>
             <Navbar />
             <main className="flex-grow">
@@ -96,7 +96,7 @@ function App() {
             <Footer />
           </>
         } />
-        <Route path="/exhibition-checkout/:id" element={
+        <Route path="/checkout/exhibition/:id" element={
           <>
             <Navbar />
             <main className="flex-grow">
@@ -164,16 +164,6 @@ function App() {
             <Navbar />
             <main className="flex-grow">
               <NotFound />
-            </main>
-            <Footer />
-          </>
-        } />
-
-        <Route element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <ChatBot />
             </main>
             <Footer />
           </>
