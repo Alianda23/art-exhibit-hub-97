@@ -1,4 +1,3 @@
-
 import os
 import json
 import http.server
@@ -12,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 from auth import register_user, login_user, login_admin
 from artwork import get_all_artworks, get_artwork, create_artwork, update_artwork, delete_artwork
 from exhibition import get_all_exhibitions, get_exhibition, create_exhibition, update_exhibition, delete_exhibition
-from contact import create_contact_message, get_contact_messages, update_message_status
+from contact import create_contact_message, get_all_contact_messages, update_message_status
 from database import initialize_database, json_dumps
 from middleware import auth_required, admin_required, extract_auth_token, verify_token
 
@@ -90,7 +89,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(json_dumps({"error": "Unauthorized access: Admin privileges required"}).encode())
                 return
             
-            response = get_contact_messages()
+            response = get_all_contact_messages()
             self._set_response()
             self.wfile.write(json_dumps(response).encode())
             return
