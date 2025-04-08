@@ -31,9 +31,12 @@ def create_admin(name, email, password):
         cursor.execute(query, (name, email, hashed_password))
         connection.commit()
         
+        # Get the new user ID and convert to string for consistency
+        admin_id = str(cursor.lastrowid)
+        
         return {
             "success": True,
-            "admin_id": cursor.lastrowid,
+            "admin_id": admin_id,
             "name": name
         }
     except Error as e:
@@ -60,3 +63,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

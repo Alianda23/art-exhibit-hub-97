@@ -1,6 +1,7 @@
-from database import get_db_connection, dict_from_row
+from database import get_db_connection, dict_from_row, json_dumps
 from auth import verify_token
 import json
+from decimal import Decimal
 
 def get_all_artworks():
     """Get all artworks from the database"""

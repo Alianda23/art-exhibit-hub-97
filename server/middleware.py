@@ -3,9 +3,18 @@ import jwt
 import datetime
 from functools import wraps
 from http.server import BaseHTTPRequestHandler
+from decimal import Decimal
+import json
 
 # Secret key for JWT token generation - replace with a secure random string
 SECRET_KEY = "your_secret_key_replace_this_with_a_secure_random_string"
+
+# Custom JSON encoder to handle Decimal types
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 def generate_token(user_id, name, is_admin):
     """Generate a JWT token for authentication"""
@@ -100,3 +109,9 @@ def admin_required(handler_method):
         return handler_method(self, *args, **kwargs)
     
     return wrapper
+
+# Helper function to safely encode JSON with Decimal values
+def json_dumps(data):
+    """Safely convert data to JSON string, handling Decimal types"""
+    return json.dumps(data, cls=DecimalEncoder)
+

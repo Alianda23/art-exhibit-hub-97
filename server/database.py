@@ -1,6 +1,14 @@
 import mysql.connector
 from mysql.connector import Error
 import json
+from decimal import Decimal
+
+# Custom JSON encoder to handle Decimal types
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 # Database connection configuration
 DB_CONFIG = {
@@ -161,7 +169,17 @@ def initialize_database():
 
 def dict_from_row(row, cursor):
     """Convert a database row to a dictionary"""
-    return {cursor.column_names[i]: value for i, value in enumerate(row)}
+    result = {cursor.column_names[i]: value for i, value in enumerate(row)}
+    # Convert Decimal objects to float for JSON serialization
+    for key, value in result.items():
+        if isinstance(value, Decimal):
+            result[key] = float(value)
+    return result
+
+# Helper function to safely encode JSON with Decimal values
+def json_dumps(data):
+    """Safely convert data to JSON string, handling Decimal types"""
+    return json.dumps(data, cls=DecimalEncoder)
 
 # Contact message functions
 def save_contact_message(name, email, phone, message, source='contact_form'):

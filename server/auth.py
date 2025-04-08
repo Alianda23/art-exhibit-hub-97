@@ -1,9 +1,9 @@
-
 import hashlib
 import secrets
-from database import get_db_connection
+from database import get_db_connection, json_dumps
 import jwt
 import datetime
+from decimal import Decimal
 
 # Secret key for JWT token generation - replace with a secure random string
 SECRET_KEY = "your_secret_key_replace_this_with_a_secure_random_string"
