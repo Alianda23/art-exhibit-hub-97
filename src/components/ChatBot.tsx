@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -7,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { MessageCircle, Send, X, ChevronDown, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendWhatsAppMessage } from '@/services/whatsapp';
+import { submitContactMessage } from '@/services/api';
 
 type Message = {
   id: number;
@@ -26,20 +28,12 @@ const faqs = [
     answer: "You can purchase artwork directly from our website by viewing the artwork details and clicking the 'Buy Now' button. We accept various payment methods including M-Pesa."
   },
   {
-    question: "Do you ship internationally?",
-    answer: "Yes, we ship artwork internationally. Shipping costs depend on the destination and the size of the artwork. Please contact us for a shipping quote."
-  },
-  {
-    question: "Can I visit your gallery in person?",
-    answer: "Yes, our physical gallery is located at Kimathi Street, Nairobi, Kenya. We welcome visitors during our opening hours."
-  },
-  {
-    question: "How do I book for an exhibition?",
-    answer: "You can book tickets for our exhibitions through our website by navigating to the Exhibitions page, selecting your preferred exhibition, and clicking 'Book Now'."
-  },
-  {
     question: "Can I view artwork in person before buying?",
     answer: "Some artworks may be available at local exhibitions. Keep an eye on our Events page for upcoming exhibitions."
+  },
+  {
+    question: "How do I buy a piece of art?",
+    answer: "Simply click on the artwork you love and follow the checkout process."
   },
   {
     question: "What payment methods do you accept?",
@@ -58,6 +52,10 @@ const faqs = [
     answer: "Domestic deliveries take 3–7 business days. International orders can take 7–14 days depending on customs."
   },
   {
+    question: "Do you ship internationally?",
+    answer: "Yes, we ship artwork internationally. Shipping costs depend on the destination and the size of the artwork. Please contact us for a shipping quote."
+  },
+  {
     question: "How is the artwork packaged?",
     answer: "Each piece is professionally packed to ensure safe delivery. Fragile pieces are double-boxed and cushioned."
   },
@@ -72,6 +70,14 @@ const faqs = [
   {
     question: "Do artists handle their own shipping?",
     answer: "We offer fulfillment support for artists."
+  },
+  {
+    question: "Can I visit your gallery in person?",
+    answer: "Yes, our physical gallery is located at Kimathi Street, Nairobi, Kenya. We welcome visitors during our opening hours."
+  },
+  {
+    question: "How do I book for an exhibition?",
+    answer: "You can book tickets for our exhibitions through our website by navigating to the Exhibitions page, selecting your preferred exhibition, and clicking 'Book Now'."
   }
 ];
 
@@ -152,12 +158,13 @@ const ChatBot: React.FC = () => {
     
     setTimeout(() => {
       if (faqAnswer) {
-        setMessages(prev => [...prev, {
+        const botMessage = {
           id: userMessageId + 1,
           content: faqAnswer,
-          sender: 'bot',
+          sender: 'bot' as const,
           timestamp: new Date()
-        }]);
+        };
+        setMessages(prev => [...prev, botMessage]);
       } else {
         setMessages(prev => [...prev, {
           id: userMessageId + 1,
@@ -191,7 +198,17 @@ Message: ${contactInfo.message}
     `;
     
     try {
+      // Send message to WhatsApp
       await sendWhatsAppMessage(whatsappMessage);
+      
+      // Also send to the admin panel via contact endpoint
+      await submitContactMessage({
+        name: contactInfo.name,
+        email: contactInfo.email,
+        phone: contactInfo.phone,
+        message: contactInfo.message,
+        source: 'chat_bot' // Add source to identify it came from chat
+      });
       
       setMessages(prev => [...prev, {
         id: Date.now(),
@@ -209,7 +226,7 @@ Message: ${contactInfo.message}
       
       setNeedsContactInfo(false);
     } catch (error) {
-      console.error("Failed to send message to WhatsApp:", error);
+      console.error("Failed to send message:", error);
       toast({
         title: "Error",
         description: "Failed to send your message. Please try again later.",

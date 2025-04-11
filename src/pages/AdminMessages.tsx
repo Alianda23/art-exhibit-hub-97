@@ -25,6 +25,7 @@ interface Message {
   message: string;
   date: string;
   status: 'new' | 'read' | 'replied';
+  source?: 'contact_form' | 'chat_bot';
 }
 
 const getStatusColor = (status: string) => {
@@ -37,6 +38,16 @@ const getStatusColor = (status: string) => {
       return 'bg-green-500';
     default:
       return 'bg-gray-500';
+  }
+};
+
+const getSourceBadge = (source: string = 'contact_form') => {
+  switch (source) {
+    case 'chat_bot':
+      return <Badge className="bg-purple-500 ml-2">Chat</Badge>;
+    case 'contact_form':
+    default:
+      return <Badge className="bg-green-500 ml-2">Contact</Badge>;
   }
 };
 
@@ -127,6 +138,7 @@ const AdminMessages = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Source</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -136,6 +148,9 @@ const AdminMessages = () => {
                   {messages.map((message: Message) => (
                     <TableRow key={message.id}>
                       <TableCell>{message.name}</TableCell>
+                      <TableCell>
+                        {getSourceBadge(message.source)}
+                      </TableCell>
                       <TableCell>{formatDate(message.date)}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(message.status)}>
@@ -188,7 +203,10 @@ const AdminMessages = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <p className="text-sm text-gray-500">From:</p>
-                    <p className="font-medium">{selectedMessage.name}</p>
+                    <p className="font-medium">
+                      {selectedMessage.name}
+                      {getSourceBadge(selectedMessage.source)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Date:</p>

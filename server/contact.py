@@ -3,9 +3,21 @@ from database import save_contact_message, get_all_contact_messages, update_mess
 import json
 import jwt
 import os
+from decimal import Decimal
 
 # Get the secret key from environment or use a default (in production, always use environment variables)
 SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'afriart_default_secret_key')
+
+# Custom JSON encoder to handle Decimal types
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
+
+def json_dumps(obj):
+    """Convert object to JSON string, handling Decimal types"""
+    return json.dumps(obj, cls=DecimalEncoder)
 
 def is_admin(auth_header):
     """Verify if the request is from an admin"""
@@ -28,7 +40,7 @@ def create_contact_message(data):
     message = data.get('message')
     
     # Support for chat messages
-    source = data.get('source', 'contact_form')  # New field to track where messages come from
+    source = data.get('source', 'contact_form')  # Track where messages come from
     
     # Validate required fields
     if not name or not email or not message:
@@ -46,6 +58,7 @@ def get_messages(auth_header):
     
     result = get_all_contact_messages()
     
+    # Use custom JSON encoder for Decimal values
     return result
 
 def update_message(auth_header, message_id, data):

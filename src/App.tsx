@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import './App.css';
@@ -56,6 +57,7 @@ function App() {
               <ArtworksPage />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="/artworks/:id" element={
@@ -65,6 +67,7 @@ function App() {
               <ArtworkDetail />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="/checkout/artwork/:id" element={
@@ -74,6 +77,7 @@ function App() {
               <ArtworkCheckout />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="/exhibitions" element={
@@ -83,6 +87,7 @@ function App() {
               <ExhibitionsPage />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="/exhibitions/:id" element={
@@ -92,6 +97,7 @@ function App() {
               <ExhibitionDetail />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="/checkout/exhibition/:id" element={
@@ -101,6 +107,7 @@ function App() {
               <ExhibitionCheckout />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="/payment" element={
@@ -110,6 +117,7 @@ function App() {
               <Payment />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="/payment-success" element={
@@ -119,6 +127,7 @@ function App() {
               <PaymentSuccess />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="/contact" element={
@@ -137,6 +146,7 @@ function App() {
               <Login />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="/signup" element={
@@ -146,6 +156,7 @@ function App() {
               <Signup />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="/profile" element={
@@ -155,6 +166,7 @@ function App() {
               <Profile />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="*" element={
@@ -164,6 +176,7 @@ function App() {
               <NotFound />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
       </Routes>

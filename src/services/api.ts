@@ -1,4 +1,3 @@
-
 // API service to connect to the Python backend
 
 // Base URL for the API
@@ -62,6 +61,7 @@ interface ContactMessage {
   email: string;
   phone?: string;
   message: string;
+  source?: string; // Added source field
 }
 
 // Helper function to store auth data

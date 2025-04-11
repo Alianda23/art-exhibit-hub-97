@@ -40,8 +40,11 @@ const Contact = () => {
     setIsSubmitting(true);
     
     try {
-      // Submit to backend
-      await submitContactMessage(formData);
+      // Submit to backend with source explicitly set to 'contact_form'
+      await submitContactMessage({
+        ...formData,
+        source: 'contact_form'
+      });
       
       toast({
         title: "Success",

@@ -6,13 +6,14 @@ import urllib.parse
 from http import HTTPStatus
 from datetime import datetime
 from urllib.parse import parse_qs, urlparse
+from decimal import Decimal
 
 # Import modules
 from auth import register_user, login_user, login_admin
 from artwork import get_all_artworks, get_artwork, create_artwork, update_artwork, delete_artwork
 from exhibition import get_all_exhibitions, get_exhibition, create_exhibition, update_exhibition, delete_exhibition
-from contact import create_contact_message, get_all_contact_messages, update_message_status
-from database import initialize_database, json_dumps
+from contact import create_contact_message, get_messages, update_message, json_dumps
+from database import initialize_database
 from middleware import auth_required, admin_required, extract_auth_token, verify_token
 
 # Import module for file upload handling
@@ -21,6 +22,13 @@ import shutil
 
 # Define the port
 PORT = 8000
+
+# Custom JSON encoder to handle Decimal types
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 class RequestHandler(http.server.BaseHTTPRequestHandler):
     
@@ -89,7 +97,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(json_dumps({"error": "Unauthorized access: Admin privileges required"}).encode())
                 return
             
-            response = get_all_contact_messages()
+            response = get_messages(self.headers.get('Authorization', ''))
             self._set_response()
             self.wfile.write(json_dumps(response).encode())
             return
@@ -260,6 +268,14 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         
         # Create contact message
         elif path == '/contact':
+            # Get content length
+            content_length = int(self.headers.get('Content-Length', 0))
+            
+            # Parse JSON data
+            post_data = {}
+            if content_length > 0:
+                post_data = json.loads(self.rfile.read(content_length).decode('utf-8'))
+            
             # Check required fields
             required_fields = ['name', 'email', 'message']
             missing_fields = [field for field in required_fields if field not in post_data]
@@ -269,12 +285,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(json_dumps({"error": f"Missing required fields: {', '.join(missing_fields)}"}).encode())
                 return
             
-            response = create_contact_message(
-                post_data['name'],
-                post_data['email'],
-                post_data.get('phone', ''),  # Optional
-                post_data['message']
-            )
+            response = create_contact_message(post_data)
             
             if "error" in response:
                 self._set_response(400)
