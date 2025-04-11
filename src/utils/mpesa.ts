@@ -22,22 +22,47 @@ export const initiateSTKPush = async (
       ? phoneNumber.substring(1) 
       : phoneNumber;
     
+    // Add validation for Kenyan phone numbers
+    // Should start with 254 (country code)
+    let validatedPhone = formattedPhone;
+    if (validatedPhone.startsWith('0')) {
+      // Convert format from 07XXXXXXXX to 2547XXXXXXXX
+      validatedPhone = '254' + validatedPhone.substring(1);
+    } else if (!validatedPhone.startsWith('254')) {
+      // Add country code if missing
+      validatedPhone = '254' + validatedPhone;
+    }
+    
+    console.log(`Initiating STK Push for phone: ${validatedPhone}, amount: ${amount}, order type: ${orderType}`);
+    
+    const requestBody = {
+      phoneNumber: validatedPhone,
+      amount,
+      orderType,
+      orderId,
+      accountReference,
+      callbackUrl: CALLBACK_URL
+    };
+    
+    console.log('STK Push request body:', requestBody);
+    
     const response = await fetch(`${API_URL}/mpesa/stk-push`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        phoneNumber: formattedPhone,
-        amount,
-        orderType,
-        orderId,
-        accountReference,
-        callbackUrl: CALLBACK_URL
-      }),
+      body: JSON.stringify(requestBody),
     });
     
-    return await response.json();
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('STK Push failed with server response:', errorData);
+      throw new Error(`M-Pesa API Error: ${errorData.message || 'Unknown error'}`);
+    }
+    
+    const responseData = await response.json();
+    console.log('STK Push response:', responseData);
+    return responseData;
   } catch (error) {
     console.error('M-Pesa STK Push error:', error);
     throw error;
@@ -47,6 +72,8 @@ export const initiateSTKPush = async (
 // Function to check transaction status
 export const checkTransactionStatus = async (checkoutRequestId: string): Promise<any> => {
   try {
+    console.log(`Checking transaction status for checkoutRequestId: ${checkoutRequestId}`);
+    
     const response = await fetch(`${API_URL}/mpesa/status/${checkoutRequestId}`, {
       method: 'GET',
       headers: {
@@ -54,7 +81,15 @@ export const checkTransactionStatus = async (checkoutRequestId: string): Promise
       },
     });
     
-    return await response.json();
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Transaction status check failed with server response:', errorData);
+      throw new Error(`M-Pesa API Error: ${errorData.message || 'Unknown error'}`);
+    }
+    
+    const responseData = await response.json();
+    console.log('Transaction status response:', responseData);
+    return responseData;
   } catch (error) {
     console.error('M-Pesa transaction status check error:', error);
     throw error;

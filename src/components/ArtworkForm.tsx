@@ -26,7 +26,6 @@ const artworkSchema = z.object({
   artist: z.string().min(3, { message: "Artist name must be at least 3 characters" }),
   description: z.string().min(10, { message: "Description must be at least 10 characters" }),
   price: z.coerce.number().min(0, { message: "Price must be a positive number" }),
-  imageUrl: z.string().url({ message: "Please enter a valid image URL" }).optional(),
   dimensions: z.string().optional(),
   medium: z.string().optional(),
   year: z.coerce.number().int().min(1000).max(new Date().getFullYear()).optional(),
@@ -55,7 +54,6 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
     artist: "",
     description: "",
     price: 0,
-    imageUrl: "",
     dimensions: "",
     medium: "",
     year: new Date().getFullYear(),
@@ -106,30 +104,28 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
 
   const handleSubmit = async (values: ArtworkFormValues) => {
     try {
-      // If there's a new image file, let's prepare it for upload first
-      let imageUrl = values.imageUrl || initialData?.imageUrl || "";
+      // If no image was uploaded or changed, use the existing image
+      let imageUrl = initialData?.imageUrl || "";
       
       if (imageFile) {
-        // In a real implementation, you would upload the file to a server here
-        // and get back the URL. For now, we'll simulate this with local URL.
-        const formData = new FormData();
-        formData.append('file', imageFile);
-        
-        // Just use the local preview as the URL for now
-        // In production, you would upload to server and get a real URL back
+        // Use the local preview data URL as the imageUrl
         imageUrl = previewImage || "";
-        
+      }
+      
+      if (!imageUrl && !imageFile) {
         toast({
-          title: "Image Ready",
-          description: "Image prepared for upload",
+          variant: "destructive",
+          title: "Image Required",
+          description: "Please upload an image for the artwork",
         });
+        return;
       }
       
       // Include the image URL in the submission data
       onSubmit({
         ...values,
         imageUrl,
-        price: values.price, // Keep the price as is - already in KSh
+        price: values.price // Price in KSh
       } as ArtworkData);
     } catch (error) {
       toast({
@@ -212,30 +208,6 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
                 Click above to change the image
               </p>
             )}
-            
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem className="w-full mt-4">
-                  <FormLabel>Or use image URL</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="https://example.com/image.jpg" 
-                      {...field} 
-                      onChange={(e) => {
-                        field.onChange(e);
-                        if (e.target.value) {
-                          setPreviewImage(e.target.value);
-                          setImageFile(null);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
         </div>
         

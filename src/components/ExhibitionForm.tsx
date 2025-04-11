@@ -25,7 +25,6 @@ const exhibitionSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters" }),
   description: z.string().min(10, { message: "Description must be at least 10 characters" }),
   location: z.string().min(3, { message: "Location must be at least 3 characters" }),
-  imageUrl: z.string().url({ message: "Please enter a valid image URL" }).optional(),
   startDate: z.string().min(1, { message: "Start date is required" }),
   endDate: z.string().min(1, { message: "End date is required" }),
   ticketPrice: z.coerce.number().min(0, { message: "Ticket price must be a positive number" }),
@@ -55,7 +54,6 @@ const ExhibitionForm: React.FC<ExhibitionFormProps> = ({
     title: "",
     description: "",
     location: "",
-    imageUrl: "",
     startDate: new Date().toISOString().split("T")[0],
     endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     ticketPrice: 0,
@@ -108,30 +106,28 @@ const ExhibitionForm: React.FC<ExhibitionFormProps> = ({
 
   const handleSubmit = async (values: ExhibitionFormValues) => {
     try {
-      // If there's a new image file, let's prepare it for upload first
-      let imageUrl = values.imageUrl || initialData?.imageUrl || "";
+      // If no image was uploaded or changed, use the existing image
+      let imageUrl = initialData?.imageUrl || "";
       
       if (imageFile) {
-        // In a real implementation, you would upload the file to a server here
-        // and get back the URL. For now, we'll simulate this with local URL.
-        const formData = new FormData();
-        formData.append('file', imageFile);
-        
-        // Just use the local preview as the URL for now
-        // In production, you would upload to server and get a real URL back
+        // Use the local preview data URL as the imageUrl
         imageUrl = previewImage || "";
-        
+      }
+      
+      if (!imageUrl && !imageFile) {
         toast({
-          title: "Image Ready",
-          description: "Image prepared for upload",
+          variant: "destructive",
+          title: "Image Required",
+          description: "Please upload an image for the exhibition",
         });
+        return;
       }
       
       // Include the image URL in the submission data
       onSubmit({
         ...values,
         imageUrl,
-        ticketPrice: values.ticketPrice, // Keep the price as is - already in KSh
+        ticketPrice: values.ticketPrice // Price in KSh
       } as ExhibitionData);
     } catch (error) {
       toast({
@@ -214,30 +210,6 @@ const ExhibitionForm: React.FC<ExhibitionFormProps> = ({
                 Click above to change the image
               </p>
             )}
-            
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem className="w-full mt-4">
-                  <FormLabel>Or use image URL</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="https://example.com/image.jpg" 
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        if (e.target.value) {
-                          setPreviewImage(e.target.value);
-                          setImageFile(null);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
         </div>
         
