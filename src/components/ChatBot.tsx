@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -16,7 +15,7 @@ type Message = {
   timestamp: Date;
 };
 
-// FAQ database - can be expanded as needed
+// FAQ database with all the questions
 const faqs = [
   {
     question: "What are your opening hours?",
@@ -37,6 +36,42 @@ const faqs = [
   {
     question: "How do I book for an exhibition?",
     answer: "You can book tickets for our exhibitions through our website by navigating to the Exhibitions page, selecting your preferred exhibition, and clicking 'Book Now'."
+  },
+  {
+    question: "Can I view artwork in person before buying?",
+    answer: "Some artworks may be available at local exhibitions. Keep an eye on our Events page for upcoming exhibitions."
+  },
+  {
+    question: "What payment methods do you accept?",
+    answer: "We accept M-Pesa. All transactions are secure."
+  },
+  {
+    question: "Is shipping included in the price?",
+    answer: "Shipping costs vary based on location and artwork size. They'll be calculated at checkout."
+  },
+  {
+    question: "Can I return artwork?",
+    answer: "Yes, returns are accepted within 7 days if the item is damaged or not as described."
+  },
+  {
+    question: "How long does shipping take?",
+    answer: "Domestic deliveries take 3–7 business days. International orders can take 7–14 days depending on customs."
+  },
+  {
+    question: "How is the artwork packaged?",
+    answer: "Each piece is professionally packed to ensure safe delivery. Fragile pieces are double-boxed and cushioned."
+  },
+  {
+    question: "How can I sell my artwork here?",
+    answer: "Send us an email and submit your portfolio. Our team will review and get in touch."
+  },
+  {
+    question: "How do I apply for an exhibition?",
+    answer: "Send us an email and submit your portfolio. Our team will review and get in touch."
+  },
+  {
+    question: "Do artists handle their own shipping?",
+    answer: "We offer fulfillment support for artists."
   }
 ];
 
@@ -58,7 +93,6 @@ const ChatBot: React.FC = () => {
   const toggleChat = () => {
     setIsOpen(!isOpen);
     if (!isOpen && messages.length === 0) {
-      // Add welcome message when chat is first opened
       setMessages([
         {
           id: 1,
@@ -83,13 +117,10 @@ const ChatBot: React.FC = () => {
   }, [messages]);
   
   const findFAQAnswer = (question: string): string | null => {
-    // Convert input to lowercase for case-insensitive matching
     const normalizedInput = question.toLowerCase();
     
-    // Check if any FAQ keywords match
     for (const faq of faqs) {
       if (normalizedInput.includes(faq.question.toLowerCase()) || 
-          // Check for keywords
           normalizedInput.includes('hours') && faq.question.includes('opening hours') ||
           normalizedInput.includes('buy') && faq.question.includes('buy artwork') ||
           normalizedInput.includes('purchase') && faq.question.includes('buy artwork') ||
@@ -106,7 +137,6 @@ const ChatBot: React.FC = () => {
   const handleSendMessage = () => {
     if (!currentMessage.trim()) return;
     
-    // Add user message
     const userMessageId = Date.now();
     const userMessage: Message = {
       id: userMessageId,
@@ -118,12 +148,10 @@ const ChatBot: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     setCurrentMessage('');
     
-    // Find if there's a matching FAQ
     const faqAnswer = findFAQAnswer(currentMessage);
     
     setTimeout(() => {
       if (faqAnswer) {
-        // If FAQ match found, send the answer
         setMessages(prev => [...prev, {
           id: userMessageId + 1,
           content: faqAnswer,
@@ -131,7 +159,6 @@ const ChatBot: React.FC = () => {
           timestamp: new Date()
         }]);
       } else {
-        // If no FAQ match, ask for contact info
         setMessages(prev => [...prev, {
           id: userMessageId + 1,
           content: "I don't have an immediate answer to your question. Please provide your contact details so our team can get back to you promptly.",
@@ -146,7 +173,6 @@ const ChatBot: React.FC = () => {
   const handleContactInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form
     if (!contactInfo.name || !contactInfo.email || !contactInfo.phone || !contactInfo.message) {
       toast({
         title: "Missing information",
@@ -156,7 +182,6 @@ const ChatBot: React.FC = () => {
       return;
     }
     
-    // Create message for WhatsApp
     const whatsappMessage = `
 New customer inquiry:
 Name: ${contactInfo.name}
@@ -166,10 +191,8 @@ Message: ${contactInfo.message}
     `;
     
     try {
-      // Send to WhatsApp
       await sendWhatsAppMessage(whatsappMessage);
       
-      // Add confirmation message
       setMessages(prev => [...prev, {
         id: Date.now(),
         content: "Thank you! Your information has been sent to our team. We'll get back to you as soon as possible via WhatsApp (+254741080177) or email.",
@@ -177,7 +200,6 @@ Message: ${contactInfo.message}
         timestamp: new Date()
       }]);
       
-      // Reset form
       setContactInfo({
         name: '',
         email: '',
@@ -198,7 +220,6 @@ Message: ${contactInfo.message}
   
   return (
     <>
-      {/* Chat Button */}
       <button 
         onClick={toggleChat}
         className="fixed bottom-6 right-6 bg-gold text-white p-4 rounded-full shadow-lg hover:bg-gold-dark z-50"
@@ -207,10 +228,8 @@ Message: ${contactInfo.message}
         {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
       </button>
       
-      {/* Chat Window */}
       {isOpen && (
         <Card className={`fixed bottom-20 right-6 w-80 sm:w-96 shadow-xl z-50 flex flex-col transition-all duration-300 ease-in-out ${isExpanded ? 'h-[80vh]' : 'h-[60vh]'}`}>
-          {/* Chat Header */}
           <div className="bg-gold text-white p-3 rounded-t-lg flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <MessageSquare className="h-5 w-5" />
@@ -223,7 +242,6 @@ Message: ${contactInfo.message}
             </div>
           </div>
           
-          {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-4 bg-white">
             {messages.map((message) => (
               <div 
@@ -250,7 +268,6 @@ Message: ${contactInfo.message}
             ))}
             <div ref={messagesEndRef} />
             
-            {/* Contact Form when needed */}
             {needsContactInfo && (
               <form onSubmit={handleContactInfoSubmit} className="bg-gray-50 p-4 rounded-lg mt-4">
                 <h4 className="font-medium text-gray-800 mb-3">Please provide your contact information:</h4>
@@ -310,7 +327,6 @@ Message: ${contactInfo.message}
             )}
           </div>
           
-          {/* Chat Input */}
           {!needsContactInfo && (
             <div className="p-3 border-t">
               <div className="flex items-center space-x-2">

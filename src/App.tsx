@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import './App.css';
@@ -32,7 +31,6 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen">
       <Routes>
-        {/* Admin routes with custom layout */}
         <Route path="/admin" element={<AdminLayout><Admin /></AdminLayout>} />
         <Route path="/admin/messages" element={<AdminLayout><AdminMessages /></AdminLayout>} />
         <Route path="/admin/tickets" element={<AdminLayout><AdminTickets /></AdminLayout>} />
@@ -41,7 +39,6 @@ function App() {
         <Route path="/admin/orders" element={<AdminLayout><AdminOrders /></AdminLayout>} />
         <Route path="/admin-login" element={<AdminLogin />} />
         
-        {/* Public routes with full layout */}
         <Route path="/" element={
           <>
             <Navbar />
@@ -49,6 +46,7 @@ function App() {
               <Home />
             </main>
             <Footer />
+            <ChatBot />
           </>
         } />
         <Route path="/artworks" element={
