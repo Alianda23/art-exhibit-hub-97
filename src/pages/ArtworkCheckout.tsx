@@ -170,7 +170,7 @@ const ArtworkCheckout = () => {
                     <div className="mb-4">
                       <h4 className="font-medium">{artwork.title}</h4>
                       <p className="text-sm text-gray-600">By {artwork.artist}</p>
-                      <p className="text-sm text-gray-600 mt-2">{artwork.medium}, {artwork.size}</p>
+                      <p className="text-sm text-gray-600 mt-2">{artwork.medium}, {artwork.dimensions}</p>
                     </div>
                     
                     <div className="border-t border-gray-200 pt-3">
@@ -304,7 +304,7 @@ const ArtworkCheckout = () => {
                           <div className="text-gray-600">Medium:</div>
                           <div>{artwork.medium}</div>
                           <div className="text-gray-600">Size:</div>
-                          <div>{artwork.size}</div>
+                          <div>{artwork.dimensions}</div>
                           <div className="text-gray-600">Price:</div>
                           <div>{formatPrice(artwork.price)}</div>
                           <div className="text-gray-600">Delivery Fee:</div>
