@@ -21,62 +21,77 @@ type Message = {
 const faqs = [
   {
     question: "What are your opening hours?",
+    keywords: ["open", "hour", "time", "when", "visit"],
     answer: "Our gallery is open Monday - Friday: 9:00 AM - 6:00 PM, Saturday: 10:00 AM - 5:00 PM, and Sunday: 11:00 AM - 4:00 PM."
   },
   {
     question: "How can I buy artwork?",
+    keywords: ["buy", "purchase", "how", "artwork", "acquire"],
     answer: "You can purchase artwork directly from our website by viewing the artwork details and clicking the 'Buy Now' button. We accept various payment methods including M-Pesa."
   },
   {
     question: "Can I view artwork in person before buying?",
+    keywords: ["view", "person", "before", "buying", "see", "physical", "gallery"],
     answer: "Some artworks may be available at local exhibitions. Keep an eye on our Events page for upcoming exhibitions."
   },
   {
     question: "How do I buy a piece of art?",
+    keywords: ["buy", "how", "purchase", "piece", "art"],
     answer: "Simply click on the artwork you love and follow the checkout process."
   },
   {
     question: "What payment methods do you accept?",
+    keywords: ["payment", "method", "pay", "accept", "mpesa", "m-pesa", "money", "cash"],
     answer: "We accept M-Pesa. All transactions are secure."
   },
   {
     question: "Is shipping included in the price?",
+    keywords: ["ship", "include", "price", "cost", "delivery", "fee"],
     answer: "Shipping costs vary based on location and artwork size. They'll be calculated at checkout."
   },
   {
     question: "Can I return artwork?",
+    keywords: ["return", "back", "refund", "exchange", "cancel"],
     answer: "Yes, returns are accepted within 7 days if the item is damaged or not as described."
   },
   {
     question: "How long does shipping take?",
+    keywords: ["long", "shipping", "take", "time", "delivery", "when", "arrive"],
     answer: "Domestic deliveries take 3–7 business days. International orders can take 7–14 days depending on customs."
   },
   {
     question: "Do you ship internationally?",
+    keywords: ["ship", "international", "worldwide", "abroad", "overseas", "foreign", "country"],
     answer: "Yes, we ship artwork internationally. Shipping costs depend on the destination and the size of the artwork. Please contact us for a shipping quote."
   },
   {
     question: "How is the artwork packaged?",
+    keywords: ["package", "pack", "box", "wrap", "secure", "safe", "shipping"],
     answer: "Each piece is professionally packed to ensure safe delivery. Fragile pieces are double-boxed and cushioned."
   },
   {
     question: "How can I sell my artwork here?",
+    keywords: ["sell", "artist", "my", "artwork", "submit", "portfolio"],
     answer: "Send us an email and submit your portfolio. Our team will review and get in touch."
   },
   {
     question: "How do I apply for an exhibition?",
+    keywords: ["apply", "exhibition", "show", "display", "gallery", "event"],
     answer: "Send us an email and submit your portfolio. Our team will review and get in touch."
   },
   {
     question: "Do artists handle their own shipping?",
+    keywords: ["artist", "handle", "shipping", "fulfillment", "delivery"],
     answer: "We offer fulfillment support for artists."
   },
   {
     question: "Can I visit your gallery in person?",
+    keywords: ["visit", "gallery", "person", "physical", "location", "where"],
     answer: "Yes, our physical gallery is located at Kimathi Street, Nairobi, Kenya. We welcome visitors during our opening hours."
   },
   {
     question: "How do I book for an exhibition?",
+    keywords: ["book", "exhibition", "ticket", "attend", "visit", "event"],
     answer: "You can book tickets for our exhibitions through our website by navigating to the Exhibitions page, selecting your preferred exhibition, and clicking 'Book Now'."
   }
 ];
@@ -123,21 +138,47 @@ const ChatBot: React.FC = () => {
   }, [messages]);
   
   const findFAQAnswer = (question: string): string | null => {
-    const normalizedInput = question.toLowerCase();
+    const normalizedInput = question.toLowerCase().trim();
+    const words = normalizedInput.split(/\s+/); // Split input into words
     
-    for (const faq of faqs) {
-      if (normalizedInput.includes(faq.question.toLowerCase()) || 
-          normalizedInput.includes('hours') && faq.question.includes('opening hours') ||
-          normalizedInput.includes('buy') && faq.question.includes('buy artwork') ||
-          normalizedInput.includes('purchase') && faq.question.includes('buy artwork') ||
-          normalizedInput.includes('ship') && faq.question.includes('ship') ||
-          (normalizedInput.includes('visit') || normalizedInput.includes('gallery')) && faq.question.includes('visit your gallery') ||
-          (normalizedInput.includes('book') || normalizedInput.includes('exhibition')) && faq.question.includes('book for an exhibition')
-      ) {
-        return faq.answer;
+    // Define a scoring system for FAQ matches
+    const faqScores = faqs.map(faq => {
+      let score = 0;
+      
+      // Check for keyword matches
+      faq.keywords.forEach(keyword => {
+        const keywordLower = keyword.toLowerCase();
+        // Full keyword match
+        if (normalizedInput.includes(keywordLower)) {
+          score += 2; // Higher score for a full keyword match
+        }
+        
+        // Check if any individual words match keywords
+        words.forEach(word => {
+          if (word.length > 2 && keywordLower.includes(word)) {
+            score += 1; // Partial match
+          }
+          if (keywordLower === word) {
+            score += 2; // Exact word match
+          }
+        });
+      });
+      
+      // Exact phrase matching for the question itself
+      if (normalizedInput.includes(faq.question.toLowerCase())) {
+        score += 5; // Highest priority for matching the actual question
       }
-    }
-    return null;
+      
+      return { faq, score };
+    });
+    
+    // Sort by score (highest first) and get the best match
+    const bestMatches = faqScores
+      .filter(item => item.score > 0) // Only consider items with some relevance
+      .sort((a, b) => b.score - a.score);
+    
+    // Return the best match if score is above threshold, otherwise null
+    return bestMatches.length > 0 ? bestMatches[0].faq.answer : null;
   };
   
   const handleSendMessage = () => {
