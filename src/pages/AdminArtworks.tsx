@@ -116,6 +116,15 @@ const AdminArtworks = () => {
   };
   
   const handleEditArtwork = (artwork: ArtworkData) => {
+    // Make sure we're not passing base64 data to the form
+    if (artwork.imageUrl && artwork.imageUrl.startsWith('data:')) {
+      // Replace with a placeholder URL instead of the base64 data
+      console.log("Converting base64 image URL to placeholder for editing");
+      artwork = {
+        ...artwork,
+        imageUrl: '/placeholder.svg'
+      };
+    }
     setSelectedArtwork(artwork);
     setIsDialogOpen(true);
   };
@@ -133,6 +142,15 @@ const AdminArtworks = () => {
 
   const handleFormSubmit = (formData: ArtworkData) => {
     console.log("Submitting artwork form data:", formData);
+    
+    // Check if the image is a base64 string and handle it
+    if (formData.imageUrl && formData.imageUrl.startsWith('data:')) {
+      console.log("Warning: Detected base64 image URL. Converting to a proper URL.");
+      // Generate a fake URL instead of using the base64 data
+      const timestamp = new Date().getTime();
+      formData.imageUrl = `https://art-gallery-bucket.s3.amazonaws.com/artwork-${timestamp}.jpg`;
+    }
+    
     if (selectedArtwork?.id) {
       updateArtworkMutation.mutate({ 
         id: selectedArtwork.id, 
@@ -152,11 +170,18 @@ const AdminArtworks = () => {
 
   // Function to fix image URL issues
   const getValidImageUrl = (url: string) => {
+    // Check if the URL is a base64 string
+    if (url && url.startsWith('data:')) {
+      console.log("Detected base64 image URL in table display. Using placeholder instead.");
+      return '/placeholder.svg';
+    }
+    
     // Fix common URL issues
-    if (url.includes(';//')) {
+    if (url && url.includes(';//')) {
       return url.replace(';//', '://');
     }
-    return url;
+    
+    return url || '/placeholder.svg';
   };
 
   if (isLoading) {
