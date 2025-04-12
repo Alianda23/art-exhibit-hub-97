@@ -132,6 +132,7 @@ const AdminArtworks = () => {
   };
 
   const handleFormSubmit = (formData: ArtworkData) => {
+    console.log("Submitting artwork form data:", formData);
     if (selectedArtwork?.id) {
       updateArtworkMutation.mutate({ 
         id: selectedArtwork.id, 
@@ -147,6 +148,15 @@ const AdminArtworks = () => {
       style: 'currency',
       currency: 'USD',
     }).format(price);
+  };
+
+  // Function to fix image URL issues
+  const getValidImageUrl = (url: string) => {
+    // Fix common URL issues
+    if (url.includes(';//')) {
+      return url.replace(';//', '://');
+    }
+    return url;
   };
 
   if (isLoading) {
@@ -168,6 +178,7 @@ const AdminArtworks = () => {
   }
 
   const artworks = data || [];
+  console.log("Rendered artworks:", artworks);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -203,11 +214,12 @@ const AdminArtworks = () => {
                   <TableRow key={artwork.id}>
                     <TableCell>
                       <img 
-                        src={artwork.imageUrl} 
+                        src={getValidImageUrl(artwork.imageUrl)} 
                         alt={artwork.title} 
                         className="w-16 h-16 object-cover rounded"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150';
+                          console.error("Image failed to load:", artwork.imageUrl);
+                          (e.target as HTMLImageElement).src = '/placeholder.svg';
                         }}
                       />
                     </TableCell>

@@ -46,7 +46,9 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
   onCancel,
 }) => {
   const { toast } = useToast();
-  const [previewImage, setPreviewImage] = useState<string | null>(initialData?.imageUrl || null);
+  const [previewImage, setPreviewImage] = useState<string | null>(
+    initialData?.imageUrl && initialData.imageUrl.startsWith("http") ? initialData.imageUrl : null
+  );
   const [imageFile, setImageFile] = useState<File | null>(null);
   
   const defaultValues = initialData || {
@@ -191,6 +193,10 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
                   src={previewImage} 
                   alt="Artwork preview" 
                   className="w-full h-auto rounded-lg"
+                  onError={(e) => {
+                    console.error("Image failed to load:", previewImage);
+                    (e.target as HTMLImageElement).src = '/placeholder.svg';
+                  }}
                 />
               </div>
             )}

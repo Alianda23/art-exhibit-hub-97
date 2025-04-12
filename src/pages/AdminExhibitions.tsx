@@ -133,6 +133,7 @@ const AdminExhibitions = () => {
   };
 
   const handleFormSubmit = (formData: ExhibitionData) => {
+    console.log("Submitting exhibition form data:", formData);
     if (selectedExhibition?.id) {
       updateExhibitionMutation.mutate({ 
         id: selectedExhibition.id, 
@@ -149,6 +150,23 @@ const AdminExhibitions = () => {
     } catch (error) {
       return dateString;
     }
+  };
+
+  // Function to fix image URL issues
+  const getValidImageUrl = (url: string) => {
+    if (!url) return '/placeholder.svg';
+    
+    // Fix common URL issues
+    if (url.includes(';//')) {
+      return url.replace(';//', '://');
+    }
+    
+    // Check if URL is too long (likely invalid)
+    if (url.length > 500) {
+      return '/placeholder.svg';
+    }
+    
+    return url;
   };
 
   const getStatusColor = (status: string) => {
@@ -183,6 +201,7 @@ const AdminExhibitions = () => {
   }
 
   const exhibitions = data || [];
+  console.log("Rendered exhibitions:", exhibitions);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -218,11 +237,12 @@ const AdminExhibitions = () => {
                   <TableRow key={exhibition.id}>
                     <TableCell>
                       <img 
-                        src={exhibition.imageUrl} 
+                        src={getValidImageUrl(exhibition.imageUrl)} 
                         alt={exhibition.title} 
                         className="w-16 h-16 object-cover rounded"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150';
+                          console.error("Exhibition image failed to load:", exhibition.imageUrl);
+                          (e.target as HTMLImageElement).src = '/placeholder.svg';
                         }}
                       />
                     </TableCell>
