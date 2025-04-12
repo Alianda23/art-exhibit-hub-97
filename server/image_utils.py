@@ -29,7 +29,11 @@ def save_base64_image(base64_string, filename=None):
         header, base64_string = base64_string.split(',', 1)
     
     # Convert base64 to binary
-    image_data = base64.b64decode(base64_string)
+    try:
+        image_data = base64.b64decode(base64_string)
+    except Exception as e:
+        print(f"Error decoding base64: {e}")
+        return f"/static/uploads/placeholder.jpg"
     
     # Save the image
     file_path = os.path.join(upload_path, filename)
@@ -62,7 +66,7 @@ def save_uploaded_image(file_data, filename=None):
 # Function to get the full server-side path for an image
 def get_image_path(image_url):
     """Get the full server-side path for an image URL"""
-    if image_url.startswith('/static/uploads/'):
+    if image_url and image_url.startswith('/static/uploads/'):
         filename = image_url.split('/')[-1]
         return os.path.join(ensure_upload_folder_exists(), filename)
     return None
