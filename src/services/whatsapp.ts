@@ -10,28 +10,32 @@
  */
 export const sendWhatsAppMessage = async (message: string): Promise<boolean> => {
   try {
+    console.log("Attempting to send WhatsApp message:", message);
+    
     // In a real implementation, this would connect to a WhatsApp API
-    // For now, we'll simulate a successful API call
+    // For now, we'll send this to our backend contact endpoint
+    const response = await fetch('http://localhost:8000/contact', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        name: 'WhatsApp Notification',
+        email: 'system@artexhibit.co.ke',
+        phone: '+254741080177', // Admin's WhatsApp number
+        message: message,
+        source: 'whatsapp_service'
+      }),
+    });
     
-    console.log("Message would be sent to WhatsApp number +254741080177:", message);
+    if (!response.ok) {
+      throw new Error(`Failed to send message: ${response.statusText}`);
+    }
     
-    // Here you'd typically make an API call to your WhatsApp integration service
-    // For example:
-    // const response = await fetch('your-whatsapp-api-endpoint', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'Authorization': `Bearer ${your_whatsapp_api_key}`
-    //   },
-    //   body: JSON.stringify({ 
-    //     phone: '+254741080177', // Admin's WhatsApp number
-    //     message 
-    //   })
-    // });
+    const result = await response.json();
+    console.log("WhatsApp message sent successfully:", result);
     
-    // For demo purposes, we'll just return success
     return true;
-    
   } catch (error) {
     console.error("WhatsApp API error:", error);
     return false;
