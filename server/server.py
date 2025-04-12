@@ -13,7 +13,7 @@ from auth import register_user, login_user, login_admin
 from artwork import get_all_artworks, get_artwork, create_artwork, update_artwork, delete_artwork
 from exhibition import get_all_exhibitions, get_exhibition, create_exhibition, update_exhibition, delete_exhibition
 from contact import create_contact_message, get_messages, update_message, json_dumps
-from database import initialize_database
+from db_setup import initialize_database
 from middleware import auth_required, admin_required, extract_auth_token, verify_token
 
 # Import module for file upload handling
