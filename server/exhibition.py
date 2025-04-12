@@ -1,7 +1,10 @@
+
 from database import get_db_connection, dict_from_row, json_dumps
 from auth import verify_token
 import json
 from decimal import Decimal
+from image_utils import save_base64_image
+from datetime import datetime
 
 def get_all_exhibitions():
     """Get all exhibitions from the database"""
@@ -37,6 +40,27 @@ def get_all_exhibitions():
             
             # Convert image_url to camelCase
             exhibition['imageUrl'] = exhibition.pop('image_url')
+            
+            # Fix any image URLs that are base64 data
+            if exhibition['imageUrl'] and exhibition['imageUrl'].startswith('data:image'):
+                try:
+                    # Save the base64 image to a file and update the URL
+                    timestamp = str(exhibition['id'])
+                    image_url = save_base64_image(exhibition['imageUrl'], f"{timestamp}_exhibition.jpg")
+                    
+                    # Update the database with the new URL
+                    update_query = """
+                    UPDATE exhibitions
+                    SET image_url = %s
+                    WHERE id = %s
+                    """
+                    cursor.execute(update_query, (image_url, exhibition['id']))
+                    connection.commit()
+                    
+                    # Update the exhibition object
+                    exhibition['imageUrl'] = image_url
+                except Exception as e:
+                    print(f"Error processing base64 image: {e}")
             
             # Convert total_slots and available_slots to camelCase
             exhibition['totalSlots'] = exhibition.pop('total_slots')
@@ -86,8 +110,29 @@ def get_exhibition(exhibition_id):
         # Convert ticket_price to camelCase
         exhibition['ticketPrice'] = exhibition.pop('ticket_price')
         
-        # Convert image_url to camelCase
+        # Convert image_url to camelCase and process if needed
         exhibition['imageUrl'] = exhibition.pop('image_url')
+        
+        # Fix any image URLs that are base64 data
+        if exhibition['imageUrl'] and exhibition['imageUrl'].startswith('data:image'):
+            try:
+                # Save the base64 image to a file and update the URL
+                timestamp = str(exhibition['id'])
+                image_url = save_base64_image(exhibition['imageUrl'], f"{timestamp}_exhibition.jpg")
+                
+                # Update the database with the new URL
+                update_query = """
+                UPDATE exhibitions
+                SET image_url = %s
+                WHERE id = %s
+                """
+                cursor.execute(update_query, (image_url, exhibition['id']))
+                connection.commit()
+                
+                # Update the exhibition object
+                exhibition['imageUrl'] = image_url
+            except Exception as e:
+                print(f"Error processing base64 image: {e}")
         
         # Convert total_slots and available_slots to camelCase
         exhibition['totalSlots'] = exhibition.pop('total_slots')
@@ -158,6 +203,18 @@ def create_exhibition(auth_header, exhibition_data):
             except json.JSONDecodeError as e:
                 print(f"ERROR: Failed to parse exhibition data: {e}")
                 return {"error": f"Invalid exhibition data format: {str(e)}"}
+        
+        # Handle image URL - if it's a base64 string, save it to a file
+        image_url = exhibition_data.get("imageUrl")
+        if image_url and image_url.startswith('data:image'):
+            try:
+                # Save the base64 image to a file
+                timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+                image_url = save_base64_image(image_url, f"{timestamp}_exhibition.jpg")
+                exhibition_data["imageUrl"] = image_url
+            except Exception as e:
+                print(f"ERROR: Failed to process image: {e}")
+                return {"error": f"Image processing failed: {str(e)}"}
         
         print(f"Inserting exhibition data: {exhibition_data}")
         query = """
@@ -240,6 +297,18 @@ def update_exhibition(auth_header, exhibition_id, exhibition_data):
     cursor = connection.cursor()
     
     try:
+        # Handle image URL - if it's a base64 string, save it to a file
+        image_url = exhibition_data.get("imageUrl")
+        if image_url and image_url.startswith('data:image'):
+            try:
+                # Save the base64 image to a file
+                timestamp = str(exhibition_id)
+                image_url = save_base64_image(image_url, f"{timestamp}_exhibition.jpg")
+                exhibition_data["imageUrl"] = image_url
+            except Exception as e:
+                print(f"ERROR: Failed to process image: {e}")
+                return {"error": f"Image processing failed: {str(e)}"}
+                
         query = """
         UPDATE exhibitions
         SET title = %s, description = %s, location = %s, start_date = %s, end_date = %s,

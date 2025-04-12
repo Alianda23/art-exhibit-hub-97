@@ -1,7 +1,9 @@
+
 from database import get_db_connection, dict_from_row, json_dumps
 from auth import verify_token
 import json
 from decimal import Decimal
+from image_utils import save_base64_image
 
 def get_all_artworks():
     """Get all artworks from the database"""
@@ -27,6 +29,28 @@ def get_all_artworks():
             
             # Convert id to string to match frontend expectations
             artwork['id'] = str(artwork['id'])
+            
+            # Fix any image URLs that are base64 data
+            if artwork['image_url'] and artwork['image_url'].startswith('data:image'):
+                try:
+                    # Save the base64 image to a file and update the URL
+                    timestamp = str(artwork['id'])
+                    image_url = save_base64_image(artwork['image_url'], f"{timestamp}_artwork.jpg")
+                    
+                    # Update the database with the new URL
+                    update_query = """
+                    UPDATE artworks
+                    SET image_url = %s
+                    WHERE id = %s
+                    """
+                    cursor.execute(update_query, (image_url, artwork['id']))
+                    connection.commit()
+                    
+                    # Update the artwork object
+                    artwork['image_url'] = image_url
+                except Exception as e:
+                    print(f"Error processing base64 image: {e}")
+            
             artworks.append(artwork)
         
         return {"artworks": artworks}
@@ -62,6 +86,27 @@ def get_artwork(artwork_id):
         artwork = dict_from_row(row, cursor)
         # Convert id to string to match frontend expectations
         artwork['id'] = str(artwork['id'])
+        
+        # Fix any image URLs that are base64 data
+        if artwork['image_url'] and artwork['image_url'].startswith('data:image'):
+            try:
+                # Save the base64 image to a file and update the URL
+                timestamp = str(artwork['id'])
+                image_url = save_base64_image(artwork['image_url'], f"{timestamp}_artwork.jpg")
+                
+                # Update the database with the new URL
+                update_query = """
+                UPDATE artworks
+                SET image_url = %s
+                WHERE id = %s
+                """
+                cursor.execute(update_query, (image_url, artwork['id']))
+                connection.commit()
+                
+                # Update the artwork object
+                artwork['image_url'] = image_url
+            except Exception as e:
+                print(f"Error processing base64 image: {e}")
         
         return artwork
     except Exception as e:
@@ -129,6 +174,18 @@ def create_artwork(auth_header, artwork_data):
                 print(f"ERROR: Failed to parse artwork data: {e}")
                 return {"error": f"Invalid artwork data format: {str(e)}"}
         
+        # Handle image URL - if it's a base64 string, save it to a file
+        image_url = artwork_data.get("imageUrl")
+        if image_url and image_url.startswith('data:image'):
+            try:
+                # Save the base64 image to a file
+                timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+                image_url = save_base64_image(image_url, f"{timestamp}_artwork.jpg")
+                artwork_data["imageUrl"] = image_url
+            except Exception as e:
+                print(f"ERROR: Failed to process image: {e}")
+                return {"error": f"Image processing failed: {str(e)}"}
+        
         print(f"Inserting artwork data: {artwork_data}")
         query = """
         INSERT INTO artworks (title, artist, description, price, image_url,
@@ -159,6 +216,8 @@ def create_artwork(auth_header, artwork_data):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+# ... keep existing code for update_artwork and delete_artwork
 
 def update_artwork(auth_header, artwork_id, artwork_data):
     """Update an existing artwork (admin only)"""
@@ -194,6 +253,18 @@ def update_artwork(auth_header, artwork_id, artwork_data):
     cursor = connection.cursor()
     
     try:
+        # Handle image URL - if it's a base64 string, save it to a file
+        image_url = artwork_data.get("imageUrl")
+        if image_url and image_url.startswith('data:image'):
+            try:
+                # Save the base64 image to a file
+                timestamp = str(artwork_id)
+                image_url = save_base64_image(image_url, f"{timestamp}_artwork.jpg")
+                artwork_data["imageUrl"] = image_url
+            except Exception as e:
+                print(f"ERROR: Failed to process image: {e}")
+                return {"error": f"Image processing failed: {str(e)}"}
+                
         query = """
         UPDATE artworks
         SET title = %s, artist = %s, description = %s, price = %s,
