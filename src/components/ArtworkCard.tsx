@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Artwork } from '@/types';
 import { formatPrice } from '@/utils/formatters';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 interface ArtworkCardProps {
