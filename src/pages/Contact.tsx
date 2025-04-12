@@ -49,10 +49,12 @@ const Contact = () => {
     
     try {
       // Submit to backend with source explicitly set to 'contact_form'
-      await submitContactMessage({
+      const result = await submitContactMessage({
         ...formData,
         source: 'contact_form'
       });
+      
+      console.log('Contact form submission result:', result);
       
       toast({
         title: "Success",

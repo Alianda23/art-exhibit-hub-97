@@ -46,8 +46,14 @@ def create_contact_message(data):
     if not name or not email or not message:
         return {"error": "Missing required fields"}
     
+    # Print data for debugging
+    print(f"Saving contact message: {name}, {email}, {message}, source: {source}")
+    
     # Save the message
     result = save_contact_message(name, email, phone, message, source)
+    
+    # Print result for debugging
+    print(f"Save result: {result}")
     
     # Convert any Decimal values to float
     if isinstance(result, dict):
@@ -59,7 +65,11 @@ def get_messages(auth_header):
     if not is_admin(auth_header):
         return {"error": "Unauthorized access"}
     
+    print("Fetching all contact messages")
     result = get_all_contact_messages()
+    
+    # Print result for debugging
+    print(f"Fetch messages result: {result}")
     
     # Use custom JSON encoder for Decimal values and convert all Decimal to float
     if isinstance(result, dict) and 'messages' in result:

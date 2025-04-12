@@ -59,15 +59,35 @@ const AdminMessages = () => {
 
   // Check if user is an admin
   useEffect(() => {
-    if (!isAdmin()) {
-      navigate('/admin-login');
-    }
+    const checkAdmin = async () => {
+      console.log('Checking admin status on AdminMessages page');
+      if (!isAdmin()) {
+        console.log('Not admin, redirecting to login');
+        navigate('/admin-login');
+      } else {
+        console.log('Admin status confirmed');
+      }
+    };
+    
+    checkAdmin();
   }, [navigate]);
 
   // Fetch all contact messages
   const { data, isLoading, error } = useQuery({
     queryKey: ['contactMessages'],
-    queryFn: getAllContactMessages,
+    queryFn: async () => {
+      console.log('Fetching contact messages');
+      try {
+        const result = await getAllContactMessages();
+        console.log('Messages fetched:', result);
+        return result;
+      } catch (err) {
+        console.error('Error fetching messages:', err);
+        throw err;
+      }
+    },
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   // Mutation for updating message status
@@ -81,7 +101,8 @@ const AdminMessages = () => {
         description: "Message status has been updated successfully",
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error updating message status:', error);
       toast({
         title: "Error",
         description: "Failed to update message status",
@@ -115,12 +136,13 @@ const AdminMessages = () => {
     return (
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-6">Contact Messages</h1>
-        <p className="text-red-500">Error loading messages</p>
+        <p className="text-red-500">Error loading messages: {String(error)}</p>
       </div>
     );
   }
 
   const messages = data?.messages || [];
+  console.log('Rendering messages:', messages);
 
   return (
     <div className="container mx-auto py-8 px-4">
