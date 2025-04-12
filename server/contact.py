@@ -28,7 +28,7 @@ def is_admin(auth_header):
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-        return 'admin_id' in payload
+        return payload.get('is_admin', False)
     except jwt.PyJWTError:
         return False
 
@@ -49,6 +49,9 @@ def create_contact_message(data):
     # Save the message
     result = save_contact_message(name, email, phone, message, source)
     
+    # Convert any Decimal values to float
+    if isinstance(result, dict):
+        return json.loads(json_dumps(result))
     return result
 
 def get_messages(auth_header):
@@ -58,7 +61,9 @@ def get_messages(auth_header):
     
     result = get_all_contact_messages()
     
-    # Use custom JSON encoder for Decimal values
+    # Use custom JSON encoder for Decimal values and convert all Decimal to float
+    if isinstance(result, dict) and 'messages' in result:
+        return json.loads(json_dumps(result))
     return result
 
 def update_message(auth_header, message_id, data):
@@ -72,6 +77,9 @@ def update_message(auth_header, message_id, data):
     
     result = update_message_status(message_id, status)
     
+    # Convert any Decimal values to float
+    if isinstance(result, dict):
+        return json.loads(json_dumps(result))
     return result
 
 # WhatsApp message handling would need additional server-side code

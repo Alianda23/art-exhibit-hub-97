@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 import { submitContactMessage } from '@/services/api';
 import ChatBot from '@/components/ChatBot';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -17,11 +18,16 @@ const Contact = () => {
     message: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const { toast } = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Reset submission status when user starts typing again
+    if (submitStatus !== 'idle') {
+      setSubmitStatus('idle');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,10 +40,12 @@ const Contact = () => {
         description: "Please fill in all required fields",
         variant: "destructive"
       });
+      setSubmitStatus('error');
       return;
     }
     
     setIsSubmitting(true);
+    setSubmitStatus('idle');
     
     try {
       // Submit to backend with source explicitly set to 'contact_form'
@@ -50,6 +58,9 @@ const Contact = () => {
         title: "Success",
         description: "Your message has been sent successfully! We'll get back to you soon."
       });
+      
+      // Show success status
+      setSubmitStatus('success');
       
       // Reset form
       setFormData({
@@ -65,6 +76,9 @@ const Contact = () => {
         description: "Failed to send message. Please try again later.",
         variant: "destructive"
       });
+      
+      // Show error status
+      setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
     }
@@ -86,6 +100,22 @@ const Contact = () => {
         <div className="grid md:grid-cols-[2fr_1fr] gap-10 items-start max-w-6xl mx-auto">
           <div className="bg-white p-8 rounded-lg shadow-md">
             <h2 className="text-2xl font-serif font-semibold mb-6">Send a Message</h2>
+            
+            {submitStatus === 'success' && (
+              <Alert className="mb-4 bg-green-50 border-green-200 text-green-800">
+                <AlertDescription>
+                  Your message has been sent successfully! We'll get back to you soon.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {submitStatus === 'error' && (
+              <Alert className="mb-4 bg-red-50 border-red-200 text-red-800">
+                <AlertDescription>
+                  There was a problem sending your message. Please try again.
+                </AlertDescription>
+              </Alert>
+            )}
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid sm:grid-cols-2 gap-6">

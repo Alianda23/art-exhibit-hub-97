@@ -410,7 +410,8 @@ export const submitContactMessage = async (messageData: ContactMessage) => {
     });
     
     if (!response.ok) {
-      throw new Error('Failed to submit contact message');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to submit contact message');
     }
     
     return await response.json();

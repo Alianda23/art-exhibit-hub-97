@@ -1,3 +1,4 @@
+
 import os
 import json
 import http.server
@@ -197,8 +198,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json_dumps(response).encode())
             return
         
-        # Admin login
-        elif path == '/admin/login':
+        # Admin login - Fixed the endpoint
+        elif path == '/admin-login':
             if not post_data:
                 self._set_response(400)
                 self.wfile.write(json_dumps({"error": "Missing login data"}).encode())
