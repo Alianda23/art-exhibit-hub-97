@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAllArtworks, createArtwork, updateArtwork, deleteArtwork, ArtworkData } from '@/services/api';
@@ -116,15 +115,6 @@ const AdminArtworks = () => {
   };
   
   const handleEditArtwork = (artwork: ArtworkData) => {
-    // Make sure we're not passing base64 data to the form
-    if (artwork.imageUrl && artwork.imageUrl.startsWith('data:')) {
-      // Replace with a placeholder URL instead of the base64 data
-      console.log("Converting base64 image URL to placeholder for editing");
-      artwork = {
-        ...artwork,
-        imageUrl: '/placeholder.svg'
-      };
-    }
     setSelectedArtwork(artwork);
     setIsDialogOpen(true);
   };
@@ -141,15 +131,10 @@ const AdminArtworks = () => {
   };
 
   const handleFormSubmit = (formData: ArtworkData) => {
-    console.log("Submitting artwork form data:", formData);
+    console.log("Submitting artwork form data");
     
-    // Check if the image is a base64 string and handle it
-    if (formData.imageUrl && formData.imageUrl.startsWith('data:')) {
-      console.log("Warning: Detected base64 image URL. Converting to a proper URL.");
-      // Generate a fake URL instead of using the base64 data
-      const timestamp = new Date().getTime();
-      formData.imageUrl = `https://art-gallery-bucket.s3.amazonaws.com/artwork-${timestamp}.jpg`;
-    }
+    // Don't modify the image URL - send it as-is to the server
+    // The server will handle base64 images properly
     
     if (selectedArtwork?.id) {
       updateArtworkMutation.mutate({ 
@@ -168,20 +153,17 @@ const AdminArtworks = () => {
     }).format(price);
   };
 
-  // Function to fix image URL issues
+  // Function to handle image URL display
   const getValidImageUrl = (url: string) => {
-    // Check if the URL is a base64 string
-    if (url && url.startsWith('data:')) {
-      console.log("Detected base64 image URL in table display. Using placeholder instead.");
-      return '/placeholder.svg';
+    if (!url) return '/placeholder.svg';
+    
+    // If it's already a server URL or an absolute URL, use it directly
+    if (url.startsWith('/static/') || url.startsWith('http')) {
+      return url;
     }
     
-    // Fix common URL issues
-    if (url && url.includes(';//')) {
-      return url.replace(';//', '://');
-    }
-    
-    return url || '/placeholder.svg';
+    // Fallback
+    return '/placeholder.svg';
   };
 
   if (isLoading) {
@@ -203,7 +185,6 @@ const AdminArtworks = () => {
   }
 
   const artworks = data || [];
-  console.log("Rendered artworks:", artworks);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -213,6 +194,7 @@ const AdminArtworks = () => {
           <Plus className="w-4 h-4" /> Add New Artwork
         </Button>
       </div>
+      
       
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
