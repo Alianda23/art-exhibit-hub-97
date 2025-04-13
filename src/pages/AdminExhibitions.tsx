@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAllExhibitions, createExhibition, updateExhibition, deleteExhibition, ExhibitionData } from '@/services/api';
@@ -162,7 +163,7 @@ const AdminExhibitions = () => {
     
     // If it's a relative URL from the server, prefix with API base URL
     if (url.startsWith('/static/')) {
-      return `http://localhost:8000${url}`;
+      return `${window.location.protocol}//${window.location.hostname}:8000${url}`;
     }
     
     // Handle other types of URLs
