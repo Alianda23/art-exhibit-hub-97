@@ -156,22 +156,17 @@ const AdminExhibitions = () => {
   const getValidImageUrl = (url: string) => {
     if (!url) return '/placeholder.svg';
     
-    // Fix protocol issue in URLs
-    if (url.includes(';')) {
-      return url.replace(';', ':');
+    // Fix common URL issues
+    if (url.includes(';//')) {
+      return url.replace(';//', '://');
     }
     
-    // If it's a relative URL from the server, prefix with API base URL
-    if (url.startsWith('/static/')) {
-      return `${window.location.protocol}//${window.location.hostname}:8000${url}`;
+    // Check if URL is too long (likely invalid)
+    if (url.length > 500) {
+      return '/placeholder.svg';
     }
     
-    // Handle other types of URLs
-    if (url.startsWith('http')) {
-      return url;
-    }
-    
-    return '/placeholder.svg';
+    return url;
   };
 
   const getStatusColor = (status: string) => {
