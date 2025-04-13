@@ -165,7 +165,8 @@ const AdminArtworks = () => {
     
     // If it's a relative URL from the server, prefix with API base URL
     if (url.startsWith('/static/')) {
-      return `http://localhost:8000${url}`;
+      // Use dynamic hostname from window.location
+      return `${window.location.protocol}//${window.location.hostname}:8000${url}`;
     }
     
     // Handle other types of URLs
