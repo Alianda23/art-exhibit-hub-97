@@ -1,9 +1,9 @@
+
 from database import save_contact_message, get_all_contact_messages, update_message_status
 import json
 import jwt
 import os
 from decimal import Decimal
-import datetime  # Add datetime import
 
 # Get the secret key from environment or use a default (in production, always use environment variables)
 SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'afriart_default_secret_key')
@@ -39,7 +39,7 @@ def create_contact_message(data):
     phone = data.get('phone', '')
     message = data.get('message')
     
-    # Support for chat messages and whatsapp
+    # Support for chat messages
     source = data.get('source', 'contact_form')  # Track where messages come from
     
     # Validate required fields
@@ -49,12 +49,8 @@ def create_contact_message(data):
     # Print data for debugging
     print(f"Saving contact message: {name}, {email}, {message}, source: {source}")
     
-    # Add timestamp to message for better tracking
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    formatted_message = f"[{timestamp}] {message}"
-    
     # Save the message
-    result = save_contact_message(name, email, phone, formatted_message, source)
+    result = save_contact_message(name, email, phone, message, source)
     
     # Print result for debugging
     print(f"Save result: {result}")

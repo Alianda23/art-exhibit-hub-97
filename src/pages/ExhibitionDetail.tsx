@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -28,17 +27,13 @@ const ExhibitionDetail = () => {
       return url.replace(';', ':');
     }
     
-    // If it's a relative URL from the server, prefix with API base URL
+    // If it's a relative URL from the server, prefix with API base URL if needed
     if (url.startsWith('/static/')) {
+      // If your backend is on a different port or domain, you'd need to adjust this
       return `http://localhost:8000${url}`;
     }
     
-    // Handle other types of URLs
-    if (url.startsWith('http')) {
-      return url;
-    }
-    
-    return '/placeholder.svg';
+    return url;
   };
 
   useEffect(() => {
