@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAllArtworks, createArtwork, updateArtwork, deleteArtwork, ArtworkData } from '@/services/api';
@@ -157,12 +158,21 @@ const AdminArtworks = () => {
   const getValidImageUrl = (url: string) => {
     if (!url) return '/placeholder.svg';
     
-    // If it's already a server URL or an absolute URL, use it directly
-    if (url.startsWith('/static/') || url.startsWith('http')) {
+    // Fix protocol issue in URLs
+    if (url.includes(';')) {
+      return url.replace(';', ':');
+    }
+    
+    // If it's a relative URL from the server, prefix with API base URL
+    if (url.startsWith('/static/')) {
+      return `${window.location.protocol}//${window.location.hostname}:8000${url}`;
+    }
+    
+    // Handle other types of URLs
+    if (url.startsWith('http')) {
       return url;
     }
     
-    // Fallback
     return '/placeholder.svg';
   };
 
