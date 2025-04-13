@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAllExhibitions, createExhibition, updateExhibition, deleteExhibition, ExhibitionData } from '@/services/api';
@@ -156,17 +155,22 @@ const AdminExhibitions = () => {
   const getValidImageUrl = (url: string) => {
     if (!url) return '/placeholder.svg';
     
-    // Fix common URL issues
-    if (url.includes(';//')) {
-      return url.replace(';//', '://');
+    // Fix protocol issue in URLs
+    if (url.includes(';')) {
+      return url.replace(';', ':');
     }
     
-    // Check if URL is too long (likely invalid)
-    if (url.length > 500) {
-      return '/placeholder.svg';
+    // If it's a relative URL from the server, prefix with API base URL
+    if (url.startsWith('/static/')) {
+      return `http://localhost:8000${url}`;
     }
     
-    return url;
+    // Handle other types of URLs
+    if (url.startsWith('http')) {
+      return url;
+    }
+    
+    return '/placeholder.svg';
   };
 
   const getStatusColor = (status: string) => {
