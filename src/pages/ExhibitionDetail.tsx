@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,6 @@ const ExhibitionDetail = () => {
     
     // If it's a relative URL from the server, prefix with API base URL if needed
     if (url.startsWith('/static/')) {
-      // If your backend is on a different port or domain, you'd need to adjust this
       return `http://localhost:8000${url}`;
     }
     
@@ -44,6 +44,9 @@ const ExhibitionDetail = () => {
         setLoading(true);
         const data = await getExhibition(id);
         setExhibition(data);
+        
+        // Log exhibition image URL for debugging
+        console.log(`Loaded exhibition detail with image: ${data.imageUrl}`);
       } catch (error) {
         console.error('Failed to fetch exhibition:', error);
         toast({

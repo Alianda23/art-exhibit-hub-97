@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Artwork } from '@/types';
@@ -22,12 +23,14 @@ const ArtworkCard = ({ artwork }: ArtworkCardProps) => {
     
     // If it's a relative URL from the server, prefix with API base URL if needed
     if (url.startsWith('/static/')) {
-      // If your backend is on a different port or domain, you'd need to adjust this
       return `http://localhost:8000${url}`;
     }
     
     return url;
   };
+
+  // Log image URL for debugging
+  console.log(`Processing image for artwork "${artwork.title}": ${artwork.imageUrl}`);
 
   return (
     <div className="group rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300">

@@ -52,6 +52,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         if path.startswith('/static/'):
             try:
                 file_path = os.path.join(os.path.dirname(__file__), path[1:])
+                print(f"Serving static file: {file_path}")
+                
                 if os.path.exists(file_path) and os.path.isfile(file_path):
                     # Determine content type
                     content_type = 'application/octet-stream'
@@ -61,19 +63,29 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                         content_type = 'image/png'
                     elif path.endswith('.gif'):
                         content_type = 'image/gif'
+                    elif path.endswith('.svg'):
+                        content_type = 'image/svg+xml'
+                    
+                    # Get file size
+                    file_size = os.path.getsize(file_path)
+                    print(f"File exists, size: {file_size} bytes, content type: {content_type}")
                     
                     # Send the file
                     with open(file_path, 'rb') as f:
                         self.send_response(200)
                         self.send_header('Content-type', content_type)
+                        self.send_header('Content-Length', str(file_size))
+                        self.send_header('Cache-Control', 'public, max-age=86400')
                         self.end_headers()
                         self.wfile.write(f.read())
                     return
                 else:
+                    print(f"File not found: {file_path}")
                     self._set_response(404)
                     self.wfile.write(json_dumps({"error": "File not found"}).encode())
                     return
             except Exception as e:
+                print(f"Error serving static file: {e}")
                 self._set_response(500)
                 self.wfile.write(json_dumps({"error": str(e)}).encode())
                 return
