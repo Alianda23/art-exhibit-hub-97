@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { formatPrice } from '@/utils/formatters';
+import { createImageSrc, handleImageError } from '@/utils/imageUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import ArtworkCard from '@/components/ArtworkCard';
@@ -97,9 +98,10 @@ const ArtworkDetail = () => {
               <div className="relative">
                 <AspectRatio ratio={3/4} className="overflow-hidden rounded-lg">
                   <img 
-                    src={artwork.imageUrl} 
+                    src={createImageSrc(artwork.imageUrl)} 
                     alt={artwork.title}
                     className="w-full h-full object-cover"
+                    onError={handleImageError}
                   />
                 </AspectRatio>
                 {isSold && (

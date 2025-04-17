@@ -3,6 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Artwork } from '@/types';
 import { formatPrice } from '@/utils/formatters';
+import { createImageSrc, handleImageError } from '@/utils/imageUtils';
 import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Ban } from 'lucide-react';
@@ -17,9 +18,10 @@ const ArtworkCard = ({ artwork }: ArtworkCardProps) => {
       <div className="image-container relative">
         <AspectRatio ratio={3/4}>
           <img
-            src={artwork.imageUrl}
+            src={createImageSrc(artwork.imageUrl)}
             alt={artwork.title}
             className="w-full h-full object-cover"
+            onError={handleImageError}
           />
         </AspectRatio>
         {artwork.status === 'sold' && (

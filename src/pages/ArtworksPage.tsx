@@ -26,6 +26,7 @@ const ArtworksPage = () => {
       try {
         setLoading(true);
         const data = await getAllArtworks();
+        console.log("Artworks loaded successfully:", data.length);
         setArtworks(data);
       } catch (error) {
         console.error('Failed to fetch artworks:', error);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAllArtworks, createArtwork, updateArtwork, deleteArtwork, ArtworkData } from '@/services/api';
+import { createImageSrc, handleImageError } from '@/utils/imageUtils';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -169,6 +170,7 @@ const AdminArtworks = () => {
     }
   });
   
+  // Handler functions
   const handleAddArtwork = () => {
     setSelectedArtwork(null);
     setIsDialogOpen(true);
@@ -209,43 +211,14 @@ const AdminArtworks = () => {
     }).format(price);
   };
 
-  // Enhanced function to fix image URL issues
-  const getValidImageUrl = (url: string) => {
-    if (!url) return "/placeholder.svg";
-    
-    // If it's already a valid URL or path, return it
-    if (url.startsWith('http') || url.startsWith('/static/uploads/')) {
-      console.log("Valid image URL:", url);
-      return url;
-    }
-    
-    // Fix common URL issues
-    if (url.includes(';//')) {
-      const fixed = url.replace(';//', '://');
-      console.log("Fixed malformed URL:", fixed);
-      return fixed;
-    }
-    
-    // Add prefix if it's just a filename or incorrect path
-    if (!url.includes('/') || url.startsWith('/')) {
-      const newUrl = url.startsWith('/') 
-        ? `/static/uploads${url}` 
-        : `/static/uploads/${url}`;
-      console.log("Adding prefix to path:", newUrl);
-      return newUrl;
-    }
-    
-    console.log("Using URL as-is:", url);
-    return url;
-  };
-
   // Log the artworks data to help with debugging
   useEffect(() => {
     if (data) {
       console.log("Artworks data received:", data);
       // Check image URLs
       data.forEach((artwork: ArtworkData) => {
-        console.log(`Artwork: ${artwork.title}, Image URL: ${artwork.imageUrl}, Processed URL: ${getValidImageUrl(artwork.imageUrl)}`);
+        const processedUrl = createImageSrc(artwork.imageUrl);
+        console.log(`Artwork: ${artwork.title}, Original URL: ${artwork.imageUrl}, Processed URL: ${processedUrl}`);
       });
     }
   }, [data]);
@@ -303,54 +276,45 @@ const AdminArtworks = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                artworksToDisplay.map((artwork: ArtworkData) => {
-                  // Process the image URL ahead of time
-                  const processedImageUrl = getValidImageUrl(artwork.imageUrl);
-                  console.log(`Rendering artwork ${artwork.id} with image: ${processedImageUrl}`);
-                  
-                  return (
-                    <TableRow key={artwork.id}>
-                      <TableCell>
-                        <img 
-                          src={processedImageUrl} 
-                          alt={artwork.title} 
-                          className="w-16 h-16 object-cover rounded"
-                          onError={(e) => {
-                            console.error("Image failed to load:", processedImageUrl, "Original URL:", artwork.imageUrl);
-                            (e.target as HTMLImageElement).src = '/placeholder.svg';
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{artwork.title}</TableCell>
-                      <TableCell>{artwork.artist}</TableCell>
-                      <TableCell>{formatPrice(artwork.price)}</TableCell>
-                      <TableCell>
-                        <Badge className={artwork.status === 'available' ? 'bg-green-500' : 'bg-gray-500'}>
-                          {artwork.status.toUpperCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleEditArtwork(artwork)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-red-600 hover:bg-red-50"
-                            onClick={() => handleDeleteArtwork(artwork)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                artworksToDisplay.map((artwork: ArtworkData) => (
+                  <TableRow key={artwork.id}>
+                    <TableCell>
+                      <img 
+                        src={createImageSrc(artwork.imageUrl)} 
+                        alt={artwork.title} 
+                        className="w-16 h-16 object-cover rounded"
+                        onError={handleImageError}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">{artwork.title}</TableCell>
+                    <TableCell>{artwork.artist}</TableCell>
+                    <TableCell>{formatPrice(artwork.price)}</TableCell>
+                    <TableCell>
+                      <Badge className={artwork.status === 'available' ? 'bg-green-500' : 'bg-gray-500'}>
+                        {artwork.status.toUpperCase()}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleEditArtwork(artwork)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="text-red-600 hover:bg-red-50"
+                          onClick={() => handleDeleteArtwork(artwork)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>

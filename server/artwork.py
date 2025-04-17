@@ -1,4 +1,3 @@
-
 from database import get_db_connection, dict_from_row, json_dumps
 from auth import verify_token
 import json
@@ -57,7 +56,7 @@ def save_image_from_base64(base64_str, name_prefix="artwork"):
         with open(file_path, "wb") as f:
             f.write(image_data)
         
-        # Return the URL path to the image (relative to the server)
+        # Return the URL path to the image (ALWAYS use the standard format)
         return f"/static/uploads/{filename}"
     except Exception as e:
         print(f"Error saving image: {e}")
@@ -88,9 +87,12 @@ def get_all_artworks():
             # Convert id to string to match frontend expectations
             artwork['id'] = str(artwork['id'])
             
-            # Format image URL if needed
-            if artwork['image_url'] and not artwork['image_url'].startswith('/static/'):
-                artwork['image_url'] = f"/static/uploads/{os.path.basename(artwork['image_url'])}"
+            # Format image URL if needed - ALWAYS ensure it has the correct prefix
+            if artwork['image_url']:
+                if not artwork['image_url'].startswith('/static/'):
+                    artwork['image_url'] = f"/static/uploads/{os.path.basename(artwork['image_url'])}"
+                # Log the final image URL for debugging
+                print(f"Final image URL for {artwork['title']}: {artwork['image_url']}")
                 
             artworks.append(artwork)
         
