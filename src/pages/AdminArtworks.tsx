@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAllArtworks, createArtwork, updateArtwork, deleteArtwork, ArtworkData } from '@/services/api';
@@ -77,18 +76,20 @@ const AdminArtworks = () => {
   const [artworkToDelete, setArtworkToDelete] = useState<ArtworkData | null>(null);
   const [offlineMode, setOfflineMode] = useState(false);
   
-  // Fetch all artworks
+  // Fetch all artworks - updated to use onSettled instead of onError
   const { data, isLoading, error } = useQuery({
     queryKey: ['artworks'],
     queryFn: getAllArtworks,
-    onError: (error) => {
-      console.error("Failed to fetch artworks:", error);
-      setOfflineMode(true);
-      toast({
-        variant: "destructive",
-        title: "Connection Error",
-        description: "Could not connect to server. Operating in offline mode.",
-      });
+    onSettled: (data, error) => {
+      if (error) {
+        console.error("Failed to fetch artworks:", error);
+        setOfflineMode(true);
+        toast({
+          variant: "destructive",
+          title: "Connection Error",
+          description: "Could not connect to server. Operating in offline mode.",
+        });
+      }
     }
   });
 
