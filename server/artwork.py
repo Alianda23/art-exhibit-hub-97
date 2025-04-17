@@ -1,7 +1,67 @@
+
 from database import get_db_connection, dict_from_row, json_dumps
 from auth import verify_token
 import json
+import os
+import base64
+import time
 from decimal import Decimal
+
+# Create the uploads directory if it doesn't exist
+def ensure_uploads_directory():
+    """Create the uploads directory if it doesn't exist"""
+    uploads_dir = os.path.join(os.path.dirname(__file__), "static", "uploads")
+    if not os.path.exists(uploads_dir):
+        os.makedirs(uploads_dir)
+        print(f"Created directory: {uploads_dir}")
+
+# Call this function to ensure directory exists
+ensure_uploads_directory()
+
+# Function to handle image storage
+def save_image_from_base64(base64_str, name_prefix="artwork"):
+    """Save a base64 image to the uploads directory and return the path"""
+    # Handle empty strings or None values
+    if not base64_str:
+        return None
+        
+    # If it's already a URL path (not base64), return it as is
+    if base64_str.startswith('/static/'):
+        return base64_str
+    
+    try:
+        # Extract the image data from the base64 string
+        if "," in base64_str:
+            # For format like "data:image/jpeg;base64,/9j/4AAQSk..."
+            image_format, base64_data = base64_str.split(",", 1)
+            if ';base64' not in image_format:
+                print("Warning: Not a valid base64 image format")
+                return None
+        else:
+            # Assume it's just the base64 data
+            base64_data = base64_str
+        
+        # Decode the base64 data
+        image_data = base64.b64decode(base64_data)
+        
+        # Generate a unique filename based on timestamp
+        timestamp = time.strftime("%Y%m%d%H%M%S")
+        filename = f"{name_prefix}_{timestamp}.jpg"
+        
+        # Save to the uploads directory
+        uploads_dir = os.path.join(os.path.dirname(__file__), "static", "uploads")
+        if not os.path.exists(uploads_dir):
+            os.makedirs(uploads_dir)
+            
+        file_path = os.path.join(uploads_dir, filename)
+        with open(file_path, "wb") as f:
+            f.write(image_data)
+        
+        # Return the URL path to the image (relative to the server)
+        return f"/static/uploads/{filename}"
+    except Exception as e:
+        print(f"Error saving image: {e}")
+        return None
 
 def get_all_artworks():
     """Get all artworks from the database"""
@@ -27,6 +87,11 @@ def get_all_artworks():
             
             # Convert id to string to match frontend expectations
             artwork['id'] = str(artwork['id'])
+            
+            # Format image URL if needed
+            if artwork['image_url'] and not artwork['image_url'].startswith('/static/'):
+                artwork['image_url'] = f"/static/uploads/{os.path.basename(artwork['image_url'])}"
+                
             artworks.append(artwork)
         
         return {"artworks": artworks}
@@ -62,6 +127,10 @@ def get_artwork(artwork_id):
         artwork = dict_from_row(row, cursor)
         # Convert id to string to match frontend expectations
         artwork['id'] = str(artwork['id'])
+        
+        # Format image URL if needed
+        if artwork['image_url'] and not artwork['image_url'].startswith('/static/'):
+            artwork['image_url'] = f"/static/uploads/{os.path.basename(artwork['image_url'])}"
         
         return artwork
     except Exception as e:
@@ -129,6 +198,18 @@ def create_artwork(auth_header, artwork_data):
                 print(f"ERROR: Failed to parse artwork data: {e}")
                 return {"error": f"Invalid artwork data format: {str(e)}"}
         
+        # Handle the image - convert base64 to file if needed
+        image_url = artwork_data.get("imageUrl")
+        if image_url and (image_url.startswith('data:') or image_url.startswith('base64,')):
+            # Save the image and get the file path
+            saved_image_path = save_image_from_base64(image_url)
+            if saved_image_path:
+                image_url = saved_image_path
+                print(f"Image saved to: {saved_image_path}")
+            else:
+                print("Failed to save image")
+                image_url = "/placeholder.svg"
+        
         print(f"Inserting artwork data: {artwork_data}")
         query = """
         INSERT INTO artworks (title, artist, description, price, image_url,
@@ -140,7 +221,7 @@ def create_artwork(auth_header, artwork_data):
             artwork_data.get("artist"),
             artwork_data.get("description"),
             artwork_data.get("price"),
-            artwork_data.get("imageUrl"),
+            image_url,
             artwork_data.get("dimensions"),
             artwork_data.get("medium"),
             artwork_data.get("year"),
@@ -194,6 +275,24 @@ def update_artwork(auth_header, artwork_id, artwork_data):
     cursor = connection.cursor()
     
     try:
+        # Handle the image - convert base64 to file if needed
+        image_url = artwork_data.get("imageUrl")
+        if image_url and (image_url.startswith('data:') or image_url.startswith('base64,')):
+            # Save the image and get the file path
+            saved_image_path = save_image_from_base64(image_url)
+            if saved_image_path:
+                image_url = saved_image_path
+                print(f"Image saved to: {saved_image_path}")
+            else:
+                print("Failed to save image")
+                # Keep the original image URL if saving fails
+                cursor.execute("SELECT image_url FROM artworks WHERE id = %s", (artwork_id,))
+                result = cursor.fetchone()
+                if result:
+                    image_url = result[0]
+                else:
+                    image_url = "/placeholder.svg"
+                    
         query = """
         UPDATE artworks
         SET title = %s, artist = %s, description = %s, price = %s,
@@ -205,7 +304,7 @@ def update_artwork(auth_header, artwork_id, artwork_data):
             artwork_data.get("artist"),
             artwork_data.get("description"),
             artwork_data.get("price"),
-            artwork_data.get("imageUrl"),
+            image_url,
             artwork_data.get("dimensions"),
             artwork_data.get("medium"),
             artwork_data.get("year"),

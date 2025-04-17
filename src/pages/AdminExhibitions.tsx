@@ -156,9 +156,10 @@ const AdminExhibitions = () => {
   const getValidImageUrl = (url: string) => {
     if (!url) return '/placeholder.svg';
     
-    // Fix common URL issues
-    if (url.includes(';//')) {
-      return url.replace(';//', '://');
+    // Handle relative paths
+    if (url.startsWith('/static/')) {
+      // Ensure server-side paths are properly prefixed
+      return url;
     }
     
     // Check if URL is too long (likely invalid)

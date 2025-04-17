@@ -4,6 +4,7 @@ import json
 import http.server
 import socketserver
 import urllib.parse
+import mimetypes
 from http import HTTPStatus
 from datetime import datetime
 from urllib.parse import parse_qs, urlparse
@@ -23,6 +24,41 @@ import shutil
 
 # Define the port
 PORT = 8000
+
+# Ensure the static/uploads directory exists
+def ensure_uploads_directory():
+    uploads_dir = os.path.join(os.path.dirname(__file__), "static", "uploads")
+    if not os.path.exists(uploads_dir):
+        os.makedirs(uploads_dir)
+        print(f"Created directory: {uploads_dir}")
+
+# Call this function to ensure directory exists
+ensure_uploads_directory()
+
+# Create a default exhibition image if it doesn't exist
+def create_default_exhibition_image():
+    default_image_path = os.path.join(os.path.dirname(__file__), "static", "uploads", "default_exhibition.jpg")
+    if not os.path.exists(default_image_path):
+        try:
+            # Create a simple colored rectangle as the default image
+            # This would be better with PIL, but let's use a placeholder approach
+            from shutil import copyfile
+            
+            # Copy a placeholder from public if it exists
+            source_placeholder = os.path.join(os.path.dirname(__file__), "..", "public", "placeholder.svg")
+            if os.path.exists(source_placeholder):
+                copyfile(source_placeholder, default_image_path)
+                print(f"Created default exhibition image from placeholder")
+            else:
+                # Create an empty file as fallback
+                with open(default_image_path, "w") as f:
+                    f.write("Default Exhibition Image Placeholder")
+                print(f"Created empty default exhibition image")
+        except Exception as e:
+            print(f"Failed to create default exhibition image: {e}")
+
+# Call this function to ensure the default exhibition image exists
+create_default_exhibition_image()
 
 # Custom JSON encoder to handle Decimal types
 class DecimalEncoder(json.JSONEncoder):
@@ -44,10 +80,51 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self._set_response()
     
+    def serve_static_file(self, file_path):
+        """Serve a static file based on its MIME type"""
+        try:
+            # Check if file exists
+            if not os.path.exists(file_path):
+                self.send_response(404)
+                self.end_headers()
+                return
+                
+            # Determine the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if not content_type:
+                content_type = 'application/octet-stream'
+                
+            # Get file size
+            file_size = os.path.getsize(file_path)
+            
+            # Set headers
+            self.send_response(200)
+            self.send_header('Content-type', content_type)
+            self.send_header('Content-Length', str(file_size))
+            self.end_headers()
+            
+            # Read and send the file
+            with open(file_path, 'rb') as f:
+                self.wfile.write(f.read())
+                
+        except Exception as e:
+            print(f"Error serving static file: {e}")
+            self.send_response(500)
+            self.end_headers()
+    
     def do_GET(self):
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
         
+        # Handle static files (images, CSS, JS, etc.)
+        if path.startswith('/static/'):
+            file_path = os.path.join(os.path.dirname(__file__), path[1:])
+            # Debugging info
+            print(f"Serving static file: {file_path}")
+            self.serve_static_file(file_path)
+            return
+        
+        # Handle API endpoints
         # Handle GET /artworks
         if path == '/artworks':
             response = get_all_artworks()
@@ -472,6 +549,12 @@ def main():
     # Initialize the database
     print("Initializing database...")
     initialize_database()
+    
+    # Create uploads directory if it doesn't exist
+    ensure_uploads_directory()
+    
+    # Create default exhibition image
+    create_default_exhibition_image()
     
     # Create an HTTP server
     print(f"Starting server on port {PORT}...")

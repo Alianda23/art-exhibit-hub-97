@@ -1,7 +1,23 @@
+
 from database import get_db_connection, dict_from_row, json_dumps
 from auth import verify_token
 import json
+import os
 from decimal import Decimal
+
+# Default exhibition image path
+DEFAULT_EXHIBITION_IMAGE = "/static/uploads/default_exhibition.jpg"
+
+# Ensure uploads directory exists
+def ensure_uploads_directory():
+    """Create the uploads directory if it doesn't exist"""
+    uploads_dir = os.path.join(os.path.dirname(__file__), "static", "uploads")
+    if not os.path.exists(uploads_dir):
+        os.makedirs(uploads_dir)
+        print(f"Created directory: {uploads_dir}")
+
+# Call this function to ensure directory exists
+ensure_uploads_directory()
 
 def get_all_exhibitions():
     """Get all exhibitions from the database"""
@@ -35,8 +51,10 @@ def get_all_exhibitions():
             # Convert ticket_price to camelCase
             exhibition['ticketPrice'] = exhibition.pop('ticket_price')
             
-            # Convert image_url to camelCase
+            # Convert image_url to camelCase and ensure it's valid
             exhibition['imageUrl'] = exhibition.pop('image_url')
+            if not exhibition['imageUrl']:
+                exhibition['imageUrl'] = DEFAULT_EXHIBITION_IMAGE
             
             # Convert total_slots and available_slots to camelCase
             exhibition['totalSlots'] = exhibition.pop('total_slots')
@@ -86,8 +104,10 @@ def get_exhibition(exhibition_id):
         # Convert ticket_price to camelCase
         exhibition['ticketPrice'] = exhibition.pop('ticket_price')
         
-        # Convert image_url to camelCase
+        # Convert image_url to camelCase and ensure it's valid
         exhibition['imageUrl'] = exhibition.pop('image_url')
+        if not exhibition['imageUrl']:
+            exhibition['imageUrl'] = DEFAULT_EXHIBITION_IMAGE
         
         # Convert total_slots and available_slots to camelCase
         exhibition['totalSlots'] = exhibition.pop('total_slots')
@@ -169,6 +189,9 @@ def create_exhibition(auth_header, exhibition_data):
         # If availableSlots not provided, use totalSlots
         available_slots = exhibition_data.get("availableSlots", exhibition_data.get("totalSlots"))
         
+        # Always use the default exhibition image
+        image_url = DEFAULT_EXHIBITION_IMAGE
+        
         cursor.execute(query, (
             exhibition_data.get("title"),
             exhibition_data.get("description"),
@@ -176,7 +199,7 @@ def create_exhibition(auth_header, exhibition_data):
             exhibition_data.get("startDate"),
             exhibition_data.get("endDate"),
             exhibition_data.get("ticketPrice"),
-            exhibition_data.get("imageUrl"),
+            image_url,
             exhibition_data.get("totalSlots"),
             available_slots,
             exhibition_data.get("status")
@@ -240,6 +263,16 @@ def update_exhibition(auth_header, exhibition_id, exhibition_data):
     cursor = connection.cursor()
     
     try:
+        # First get the current exhibition to preserve the image_url
+        cursor.execute("SELECT image_url FROM exhibitions WHERE id = %s", (exhibition_id,))
+        current_exhibition = cursor.fetchone()
+        
+        if not current_exhibition:
+            return {"error": "Exhibition not found"}
+        
+        # Keep the existing image_url or use default if none
+        image_url = current_exhibition[0] if current_exhibition[0] else DEFAULT_EXHIBITION_IMAGE
+        
         query = """
         UPDATE exhibitions
         SET title = %s, description = %s, location = %s, start_date = %s, end_date = %s,
@@ -253,7 +286,7 @@ def update_exhibition(auth_header, exhibition_id, exhibition_data):
             exhibition_data.get("startDate"),
             exhibition_data.get("endDate"),
             exhibition_data.get("ticketPrice"),
-            exhibition_data.get("imageUrl"),
+            image_url,  # Keep existing image
             exhibition_data.get("totalSlots"),
             exhibition_data.get("availableSlots"),
             exhibition_data.get("status"),

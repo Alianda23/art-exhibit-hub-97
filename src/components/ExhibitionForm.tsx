@@ -16,10 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ExhibitionData } from "@/services/api";
-import { ImageUp } from "lucide-react";
-
-const MAX_FILE_SIZE = 5000000; // 5MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const exhibitionSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters" }),
@@ -47,8 +43,6 @@ const ExhibitionForm: React.FC<ExhibitionFormProps> = ({
   onCancel,
 }) => {
   const { toast } = useToast();
-  const [previewImage, setPreviewImage] = useState<string | null>(initialData?.imageUrl || null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   
   const defaultValues = initialData || {
     title: "",
@@ -67,66 +61,12 @@ const ExhibitionForm: React.FC<ExhibitionFormProps> = ({
     defaultValues,
   });
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    
-    if (!files || files.length === 0) return;
-    
-    const file = files[0];
-    
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Image size should be less than 5MB",
-      });
-      return;
-    }
-    
-    // Validate file type
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Image format should be JPG, PNG or WebP",
-      });
-      return;
-    }
-    
-    setImageFile(file);
-    
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreviewImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleSubmit = async (values: ExhibitionFormValues) => {
     try {
-      // If no image was uploaded or changed, use the existing image
-      let imageUrl = initialData?.imageUrl || "";
-      
-      if (imageFile) {
-        // Use the local preview data URL as the imageUrl
-        imageUrl = previewImage || "";
-      }
-      
-      if (!imageUrl && !imageFile) {
-        toast({
-          variant: "destructive",
-          title: "Image Required",
-          description: "Please upload an image for the exhibition",
-        });
-        return;
-      }
-      
-      // Include the image URL in the submission data
+      // Use a default image URL - this will be set on the server side
       onSubmit({
         ...values,
-        imageUrl,
+        imageUrl: "/static/uploads/default_exhibition.jpg", // This is just a placeholder, server will use default image
         ticketPrice: values.ticketPrice // Price in KSh
       } as ExhibitionData);
     } catch (error) {
@@ -183,35 +123,6 @@ const ExhibitionForm: React.FC<ExhibitionFormProps> = ({
             </FormItem>
           )}
         />
-        
-        <div className="space-y-2">
-          <FormLabel>Exhibition Image</FormLabel>
-          <div className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg">
-            {previewImage && (
-              <div className="mb-4 w-full max-w-xs">
-                <img 
-                  src={previewImage} 
-                  alt="Exhibition preview" 
-                  className="w-full h-auto rounded-lg"
-                />
-              </div>
-            )}
-            
-            <label className="w-full flex flex-col items-center px-4 py-6 bg-white rounded-lg cursor-pointer hover:bg-gray-50">
-              <ImageUp className="w-8 h-8 text-gray-500" />
-              <span className="mt-2 text-base text-gray-500">
-                {previewImage ? "Change image" : "Upload image"}
-              </span>
-              <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
-            </label>
-            
-            {previewImage && (
-              <p className="text-sm text-gray-500 mt-2">
-                Click above to change the image
-              </p>
-            )}
-          </div>
-        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
