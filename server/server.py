@@ -1,3 +1,4 @@
+
 import os
 import json
 import http.server
@@ -15,7 +16,6 @@ from exhibition import get_all_exhibitions, get_exhibition, create_exhibition, u
 from contact import create_contact_message, get_messages, update_message, json_dumps
 from db_setup import initialize_database
 from middleware import auth_required, admin_required, extract_auth_token, verify_token
-from image_utils import ensure_upload_folder_exists, save_base64_image, save_uploaded_image
 
 # Import module for file upload handling
 import tempfile
@@ -48,38 +48,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
         
-        # Serve static files
-        if path.startswith('/static/'):
-            try:
-                file_path = os.path.join(os.path.dirname(__file__), path[1:])
-                if os.path.exists(file_path) and os.path.isfile(file_path):
-                    # Determine content type
-                    content_type = 'application/octet-stream'
-                    if path.endswith('.jpg') or path.endswith('.jpeg'):
-                        content_type = 'image/jpeg'
-                    elif path.endswith('.png'):
-                        content_type = 'image/png'
-                    elif path.endswith('.gif'):
-                        content_type = 'image/gif'
-                    
-                    # Send the file
-                    with open(file_path, 'rb') as f:
-                        self.send_response(200)
-                        self.send_header('Content-type', content_type)
-                        self.end_headers()
-                        self.wfile.write(f.read())
-                    return
-                else:
-                    self._set_response(404)
-                    self.wfile.write(json_dumps({"error": "File not found"}).encode())
-                    return
-            except Exception as e:
-                self._set_response(500)
-                self.wfile.write(json_dumps({"error": str(e)}).encode())
-                return
-        
         # Handle GET /artworks
-        elif path == '/artworks':
+        if path == '/artworks':
             response = get_all_artworks()
             self._set_response()
             self.wfile.write(json_dumps(response).encode())
@@ -502,10 +472,6 @@ def main():
     # Initialize the database
     print("Initializing database...")
     initialize_database()
-    
-    # Ensure the upload folder exists
-    print("Ensuring upload folder exists...")
-    ensure_upload_folder_exists()
     
     # Create an HTTP server
     print(f"Starting server on port {PORT}...")

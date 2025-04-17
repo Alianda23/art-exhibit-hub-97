@@ -46,12 +46,10 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
   onCancel,
 }) => {
   const { toast } = useToast();
-  
-  // Use state to track the image URL and preview image
-  const [imageUrl, setImageUrl] = useState<string>(initialData?.imageUrl || "");
   const [previewImage, setPreviewImage] = useState<string | null>(
     initialData?.imageUrl && initialData.imageUrl.startsWith("http") ? initialData.imageUrl : null
   );
+  const [imageFile, setImageFile] = useState<File | null>(null);
   
   const defaultValues = initialData || {
     title: "",
@@ -96,10 +94,7 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
       return;
     }
     
-    // In a real application, you would upload the image to a server here and get a URL back
-    // For now, we'll create a fake URL using the file name
-    const fakeImageUrl = `https://art-gallery-bucket.s3.amazonaws.com/${file.name.replace(/\s+/g, '-')}`;
-    setImageUrl(fakeImageUrl);
+    setImageFile(file);
     
     // Create preview
     const reader = new FileReader();
@@ -107,13 +102,19 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
       setPreviewImage(reader.result as string);
     };
     reader.readAsDataURL(file);
-    
-    console.log("Image URL set to:", fakeImageUrl);
   };
 
   const handleSubmit = async (values: ArtworkFormValues) => {
     try {
-      if (!imageUrl && !previewImage) {
+      // If no image was uploaded or changed, use the existing image
+      let imageUrl = initialData?.imageUrl || "";
+      
+      if (imageFile) {
+        // Use the local preview data URL as the imageUrl
+        imageUrl = previewImage || "";
+      }
+      
+      if (!imageUrl && !imageFile) {
         toast({
           variant: "destructive",
           title: "Image Required",
@@ -122,15 +123,12 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
         return;
       }
       
-      // Use the stored image URL, not the preview data
-      const submissionData = {
+      // Include the image URL in the submission data
+      onSubmit({
         ...values,
-        imageUrl: imageUrl, // Use the URL, not the base64 data
-        price: values.price
-      } as ArtworkData;
-      
-      console.log("Submitting artwork with image URL:", imageUrl);
-      onSubmit(submissionData);
+        imageUrl,
+        price: values.price // Price in KSh
+      } as ArtworkData);
     } catch (error) {
       toast({
         variant: "destructive",
