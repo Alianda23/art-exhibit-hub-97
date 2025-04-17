@@ -76,20 +76,21 @@ const AdminArtworks = () => {
   const [artworkToDelete, setArtworkToDelete] = useState<ArtworkData | null>(null);
   const [offlineMode, setOfflineMode] = useState(false);
   
-  // Fetch all artworks - updated to use onSettled instead of onError
+  // Fetch all artworks - updated to fix the onSettled issue
   const { data, isLoading, error } = useQuery({
     queryKey: ['artworks'],
     queryFn: getAllArtworks,
-    onSettled: (data, error) => {
-      if (error) {
-        console.error("Failed to fetch artworks:", error);
-        setOfflineMode(true);
-        toast({
-          variant: "destructive",
-          title: "Connection Error",
-          description: "Could not connect to server. Operating in offline mode.",
-        });
-      }
+    onSuccess: (data) => {
+      console.log("Successfully fetched artworks:", data);
+    },
+    onError: (error) => {
+      console.error("Failed to fetch artworks:", error);
+      setOfflineMode(true);
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Could not connect to server. Operating in offline mode.",
+      });
     }
   });
 
@@ -201,27 +202,49 @@ const AdminArtworks = () => {
     }).format(price);
   };
 
-  // Function to fix image URL issues
+  // Enhanced function to fix image URL issues
   const getValidImageUrl = (url: string) => {
     if (!url) return "/placeholder.svg";
     
     // If it's already a valid URL or path, return it
     if (url.startsWith('http') || url.startsWith('/')) {
-      return url;
+      // Make sure it has the correct prefix for server files
+      if (url.startsWith('/static/uploads/') || url.startsWith('http')) {
+        console.log("Valid image URL:", url);
+        return url;
+      } else if (url.startsWith('/')) {
+        console.log("Prefixing URL:", `/static/uploads${url}`);
+        return `/static/uploads${url}`;
+      }
     }
     
     // Fix common URL issues
     if (url.includes(';//')) {
-      return url.replace(';//', '://');
+      const fixed = url.replace(';//', '://');
+      console.log("Fixed malformed URL:", fixed);
+      return fixed;
     }
     
     // Add prefix if it's just a filename
     if (!url.includes('/')) {
+      console.log("Adding prefix to filename:", `/static/uploads/${url}`);
       return `/static/uploads/${url}`;
     }
     
+    console.log("Using URL as-is:", url);
     return url;
   };
+
+  // Log the artworks data to help with debugging
+  useEffect(() => {
+    if (data) {
+      console.log("Artworks data received:", data);
+      // Check image URLs
+      data.forEach((artwork: ArtworkData) => {
+        console.log(`Artwork: ${artwork.title}, Image URL: ${artwork.imageUrl}, Processed URL: ${getValidImageUrl(artwork.imageUrl)}`);
+      });
+    }
+  }, [data]);
 
   // Determine which artworks to display (real or mock)
   const artworksToDisplay = offlineMode ? mockArtworks : (data || []);
@@ -276,48 +299,54 @@ const AdminArtworks = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                artworksToDisplay.map((artwork: ArtworkData) => (
-                  <TableRow key={artwork.id}>
-                    <TableCell>
-                      <img 
-                        src={getValidImageUrl(artwork.imageUrl)} 
-                        alt={artwork.title} 
-                        className="w-16 h-16 object-cover rounded"
-                        onError={(e) => {
-                          console.error("Image failed to load:", artwork.imageUrl);
-                          (e.target as HTMLImageElement).src = '/placeholder.svg';
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{artwork.title}</TableCell>
-                    <TableCell>{artwork.artist}</TableCell>
-                    <TableCell>{formatPrice(artwork.price)}</TableCell>
-                    <TableCell>
-                      <Badge className={artwork.status === 'available' ? 'bg-green-500' : 'bg-gray-500'}>
-                        {artwork.status.toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleEditArtwork(artwork)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteArtwork(artwork)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                artworksToDisplay.map((artwork: ArtworkData) => {
+                  // Process the image URL ahead of time
+                  const processedImageUrl = getValidImageUrl(artwork.imageUrl);
+                  console.log(`Rendering artwork ${artwork.id} with image: ${processedImageUrl}`);
+                  
+                  return (
+                    <TableRow key={artwork.id}>
+                      <TableCell>
+                        <img 
+                          src={processedImageUrl} 
+                          alt={artwork.title} 
+                          className="w-16 h-16 object-cover rounded"
+                          onError={(e) => {
+                            console.error("Image failed to load:", processedImageUrl, "Original URL:", artwork.imageUrl);
+                            (e.target as HTMLImageElement).src = '/placeholder.svg';
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">{artwork.title}</TableCell>
+                      <TableCell>{artwork.artist}</TableCell>
+                      <TableCell>{formatPrice(artwork.price)}</TableCell>
+                      <TableCell>
+                        <Badge className={artwork.status === 'available' ? 'bg-green-500' : 'bg-gray-500'}>
+                          {artwork.status.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleEditArtwork(artwork)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-red-600 hover:bg-red-50"
+                            onClick={() => handleDeleteArtwork(artwork)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

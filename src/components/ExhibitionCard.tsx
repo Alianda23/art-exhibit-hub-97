@@ -14,14 +14,43 @@ interface ExhibitionCardProps {
 const ExhibitionCard = ({ exhibition }: ExhibitionCardProps) => {
   const isSoldOut = exhibition.availableSlots === 0;
 
+  // Improved function to process image URLs
+  const getValidImageUrl = (url: string) => {
+    if (!url) return "/placeholder.svg";
+    
+    // If it's already a valid URL or path, return it
+    if (url.startsWith('http') || url.startsWith('/static/')) {
+      console.log("Using existing URL:", url);
+      return url;
+    }
+    
+    // Add the standard prefix for server images if needed
+    if (url.startsWith('/')) {
+      return `/static/uploads${url}`;
+    }
+    
+    if (!url.includes('/')) {
+      return `/static/uploads/${url}`;
+    }
+    
+    return url;
+  };
+
+  // Process the image URL
+  const processedImageUrl = getValidImageUrl(exhibition.imageUrl);
+
   return (
     <div className="group rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300">
       <div className="image-container relative">
         <AspectRatio ratio={16/9}>
           <img
-            src={exhibition.imageUrl}
+            src={processedImageUrl}
             alt={exhibition.title}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              console.error("Exhibition image failed to load:", processedImageUrl);
+              (e.target as HTMLImageElement).src = '/placeholder.svg';
+            }}
           />
         </AspectRatio>
         {isSoldOut && (
