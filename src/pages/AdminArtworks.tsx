@@ -76,25 +76,30 @@ const AdminArtworks = () => {
   const [artworkToDelete, setArtworkToDelete] = useState<ArtworkData | null>(null);
   const [offlineMode, setOfflineMode] = useState(false);
   
-  // Fetch all artworks - updated to fix the onSettled/onSuccess issue
+  // Fetch all artworks - using valid options for this version of react-query
   const { data, isLoading, error } = useQuery({
     queryKey: ['artworks'],
-    queryFn: getAllArtworks,
-    onSettled: (data, error) => {
-      if (data) {
-        console.log("Successfully fetched artworks:", data);
-      }
-      if (error) {
-        console.error("Failed to fetch artworks:", error);
-        setOfflineMode(true);
-        toast({
-          variant: "destructive",
-          title: "Connection Error",
-          description: "Could not connect to server. Operating in offline mode.",
-        });
-      }
-    }
+    queryFn: getAllArtworks
   });
+
+  // Handle success/error effects separately
+  useEffect(() => {
+    if (data) {
+      console.log("Successfully fetched artworks:", data);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if (error) {
+      console.error("Failed to fetch artworks:", error);
+      setOfflineMode(true);
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Could not connect to server. Operating in offline mode.",
+      });
+    }
+  }, [error, toast]);
 
   // Create artwork mutation
   const createArtworkMutation = useMutation({
