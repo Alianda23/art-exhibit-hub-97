@@ -20,23 +20,6 @@ const ArtworkDetail = () => {
   const [relatedArtworks, setRelatedArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Function to get a valid image URL and handle common issues
-  const getValidImageUrl = (url: string) => {
-    if (!url) return '/placeholder.svg';
-    
-    // Fix protocol issue in URLs (common in the dataset)
-    if (url.includes(';')) {
-      return url.replace(';', ':');
-    }
-    
-    // If it's a relative URL from the server, prefix with API base URL if needed
-    if (url.startsWith('/static/')) {
-      return `http://localhost:8000${url}`;
-    }
-    
-    return url;
-  };
-
   useEffect(() => {
     const fetchArtwork = async () => {
       if (!id) return;
@@ -53,9 +36,6 @@ const ArtworkDetail = () => {
           .slice(0, 3);
         
         setRelatedArtworks(related);
-        
-        // Log artwork image URL for debugging
-        console.log(`Loaded artwork detail with image: ${data.imageUrl}`);
       } catch (error) {
         console.error('Failed to fetch artwork:', error);
         toast({
@@ -117,13 +97,9 @@ const ArtworkDetail = () => {
               <div className="relative">
                 <AspectRatio ratio={3/4} className="overflow-hidden rounded-lg">
                   <img 
-                    src={getValidImageUrl(artwork.imageUrl)} 
+                    src={artwork.imageUrl} 
                     alt={artwork.title}
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      console.error("Artwork image failed to load:", artwork.imageUrl);
-                      (e.target as HTMLImageElement).src = '/placeholder.svg';
-                    }}
                   />
                 </AspectRatio>
                 {isSold && (

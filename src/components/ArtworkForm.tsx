@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -46,12 +47,11 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
 }) => {
   const { toast } = useToast();
   
-  // Use state to track the image preview and base64 data
-  const [imageUrl, setImageUrl] = useState<string | null>(initialData?.imageUrl || null);
+  // Use state to track the image URL and preview image
+  const [imageUrl, setImageUrl] = useState<string>(initialData?.imageUrl || "");
   const [previewImage, setPreviewImage] = useState<string | null>(
-    initialData?.imageUrl ? initialData.imageUrl : null
+    initialData?.imageUrl && initialData.imageUrl.startsWith("http") ? initialData.imageUrl : null
   );
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
   
   const defaultValues = initialData || {
     title: "",
@@ -96,19 +96,24 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
       return;
     }
     
-    // Create preview and base64 for submission
+    // In a real application, you would upload the image to a server here and get a URL back
+    // For now, we'll create a fake URL using the file name
+    const fakeImageUrl = `https://art-gallery-bucket.s3.amazonaws.com/${file.name.replace(/\s+/g, '-')}`;
+    setImageUrl(fakeImageUrl);
+    
+    // Create preview
     const reader = new FileReader();
     reader.onload = () => {
-      const result = reader.result as string;
-      setPreviewImage(result);
-      setImageBase64(result);
+      setPreviewImage(reader.result as string);
     };
     reader.readAsDataURL(file);
+    
+    console.log("Image URL set to:", fakeImageUrl);
   };
 
   const handleSubmit = async (values: ArtworkFormValues) => {
     try {
-      if (!imageBase64 && !imageUrl) {
+      if (!imageUrl && !previewImage) {
         toast({
           variant: "destructive",
           title: "Image Required",
@@ -117,16 +122,14 @@ const ArtworkForm: React.FC<ArtworkFormProps> = ({
         return;
       }
       
-      // Prepare the image URL for submission
-      // If we have a new image (base64), use that
-      // Otherwise use the existing URL
+      // Use the stored image URL, not the preview data
       const submissionData = {
         ...values,
-        imageUrl: imageBase64 || imageUrl || "",
+        imageUrl: imageUrl, // Use the URL, not the base64 data
         price: values.price
       } as ArtworkData;
       
-      console.log("Submitting artwork with image data");
+      console.log("Submitting artwork with image URL:", imageUrl);
       onSubmit(submissionData);
     } catch (error) {
       toast({

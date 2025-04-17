@@ -14,38 +14,14 @@ interface ExhibitionCardProps {
 const ExhibitionCard = ({ exhibition }: ExhibitionCardProps) => {
   const isSoldOut = exhibition.availableSlots === 0;
 
-  // Function to get a valid image URL and handle common issues
-  const getValidImageUrl = (url: string) => {
-    if (!url) return '/placeholder.svg';
-    
-    // Fix protocol issue in URLs (common in the dataset)
-    if (url.includes(';')) {
-      return url.replace(';', ':');
-    }
-    
-    // If it's a relative URL from the server, prefix with API base URL if needed
-    if (url.startsWith('/static/')) {
-      return `http://localhost:8000${url}`;
-    }
-    
-    return url;
-  };
-
-  // Log image URL for debugging
-  console.log(`Processing image for exhibition "${exhibition.title}": ${exhibition.imageUrl}`);
-
   return (
     <div className="group rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300">
       <div className="image-container relative">
         <AspectRatio ratio={16/9}>
           <img
-            src={getValidImageUrl(exhibition.imageUrl)}
+            src={exhibition.imageUrl}
             alt={exhibition.title}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              console.error("Exhibition image failed to load:", exhibition.imageUrl);
-              (e.target as HTMLImageElement).src = '/placeholder.svg';
-            }}
           />
         </AspectRatio>
         {isSoldOut && (

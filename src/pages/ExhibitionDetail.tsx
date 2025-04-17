@@ -1,40 +1,27 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { formatPrice, formatDateRange } from '@/utils/formatters';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { MapPin, Calendar, Ticket, Users, Ban } from 'lucide-react';
+import ExhibitionCard from '@/components/ExhibitionCard';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Exhibition } from '@/types';
-import { getExhibition } from '@/services/api';
-import { Calendar, MapPin, Users } from 'lucide-react';
+import { getExhibition, getAllExhibitions } from '@/services/api';
 
 const ExhibitionDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [slots, setSlots] = useState(1);
   const [exhibition, setExhibition] = useState<Exhibition | null>(null);
-  const [ticketCount, setTicketCount] = useState<number>(1);
+  const [relatedExhibitions, setRelatedExhibitions] = useState<Exhibition[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Function to get a valid image URL and handle common issues
-  const getValidImageUrl = (url: string) => {
-    if (!url) return '/placeholder.svg';
-    
-    // Fix protocol issue in URLs (common in the dataset)
-    if (url.includes(';')) {
-      return url.replace(';', ':');
-    }
-    
-    // If it's a relative URL from the server, prefix with API base URL if needed
-    if (url.startsWith('/static/')) {
-      return `http://localhost:8000${url}`;
-    }
-    
-    return url;
-  };
 
   useEffect(() => {
     const fetchExhibition = async () => {
@@ -45,8 +32,13 @@ const ExhibitionDetail = () => {
         const data = await getExhibition(id);
         setExhibition(data);
         
-        // Log exhibition image URL for debugging
-        console.log(`Loaded exhibition detail with image: ${data.imageUrl}`);
+        // Fetch all exhibitions to get related ones
+        const allExhibitions = await getAllExhibitions();
+        const related = allExhibitions
+          .filter((e: Exhibition) => e.id !== id)
+          .slice(0, 2);
+        
+        setRelatedExhibitions(related);
       } catch (error) {
         console.error('Failed to fetch exhibition:', error);
         toast({
@@ -62,22 +54,27 @@ const ExhibitionDetail = () => {
     fetchExhibition();
   }, [id, toast]);
 
-  const handleTicketCountChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setTicketCount(parseInt(event.target.value, 10));
-  };
-
   const handleBookNow = () => {
     if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
-        description: "Please log in to book tickets",
+        description: "Please log in to book exhibition tickets",
         variant: "destructive",
       });
       navigate('/login');
       return;
     }
     
-    navigate(`/checkout/exhibition/${id}?slots=${ticketCount}`);
+    if (slots > exhibition?.availableSlots!) {
+      toast({
+        title: "Error",
+        description: `Only ${exhibition?.availableSlots} slots available`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    navigate(`/checkout/exhibition/${id}?slots=${slots}`);
   };
 
   if (loading) {
@@ -102,8 +99,8 @@ const ExhibitionDetail = () => {
   }
 
   const isSoldOut = exhibition.availableSlots === 0;
-  const isPast = new Date(exhibition.endDate) < new Date();
-  const maxTickets = Math.min(exhibition.availableSlots, 10);
+  const isPast = exhibition.status === 'past';
+  const isUnavailable = isSoldOut || isPast;
 
   return (
     <div className="py-12 px-4 md:px-6 bg-secondary min-h-screen">
@@ -111,82 +108,102 @@ const ExhibitionDetail = () => {
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="grid md:grid-cols-2 gap-6 lg:gap-12">
             <div className="p-6 lg:p-8">
-              <AspectRatio ratio={16/9} className="overflow-hidden rounded-lg">
-                <img 
-                  src={getValidImageUrl(exhibition.imageUrl)} 
-                  alt={exhibition.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    console.error("Exhibition image failed to load:", exhibition.imageUrl);
-                    (e.target as HTMLImageElement).src = '/placeholder.svg';
-                  }}
-                />
-              </AspectRatio>
+              <div className="relative">
+                <AspectRatio ratio={16/9} className="overflow-hidden rounded-lg">
+                  <img 
+                    src={exhibition.imageUrl} 
+                    alt={exhibition.title}
+                    className="w-full h-full object-cover"
+                  />
+                </AspectRatio>
+                {isSoldOut && (
+                  <div className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md font-medium flex items-center gap-2">
+                    <Ban className="h-5 w-5" />
+                    <span>Sold Out</span>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="p-6 lg:p-8 flex flex-col">
-              <h1 className="font-serif text-3xl md:text-4xl font-bold mb-2">
+              <h1 className="font-serif text-3xl md:text-4xl font-bold mb-4">
                 {exhibition.title}
               </h1>
-              <div className="flex items-center text-gray-600 mb-2">
-                <MapPin className="h-4 w-4 mr-1 text-gold" />
-                <span className="text-sm">{exhibition.location}</span>
-              </div>
-              <div className="flex items-center text-gray-600 mb-6">
-                <Calendar className="h-4 w-4 mr-1 text-gold" />
-                <span className="text-sm">{formatDateRange(exhibition.startDate, exhibition.endDate)}</span>
-              </div>
               
-              <div className="bg-secondary p-4 rounded-md mb-6">
-                <p className="text-2xl font-medium text-gold">
-                  {formatPrice(exhibition.ticketPrice)} per slot
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {isSoldOut ? 'Sold Out' : `${exhibition.availableSlots} slots available`}
-                </p>
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center">
+                  <Calendar className="h-5 w-5 mr-2 text-gold" />
+                  <span>{formatDateRange(exhibition.startDate, exhibition.endDate)}</span>
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="h-5 w-5 mr-2 text-gold" />
+                  <span>{exhibition.location}</span>
+                </div>
+                <div className="flex items-center">
+                  <Ticket className="h-5 w-5 mr-2 text-gold" />
+                  <span>{formatPrice(exhibition.ticketPrice)} per ticket</span>
+                </div>
+                <div className="flex items-center">
+                  <Users className="h-5 w-5 mr-2 text-gold" />
+                  {isSoldOut ? (
+                    <span className="text-red-500 font-medium">No slots available</span>
+                  ) : (
+                    <span>{exhibition.availableSlots} slots available</span>
+                  )}
+                </div>
               </div>
               
               <div className="mb-8">
-                <h3 className="font-medium text-lg mb-2">Description</h3>
+                <h3 className="font-medium text-lg mb-2">About the Exhibition</h3>
                 <p className="text-gray-600">{exhibition.description}</p>
               </div>
-
-              {(!isSoldOut && !isPast) && (
-                <div className="mb-6">
-                  <label htmlFor="ticketCount" className="block text-sm font-medium text-gray-700">
-                    Number of Tickets
-                  </label>
-                  <select
-                    id="ticketCount"
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-gold focus:border-gold-500 sm:text-sm rounded-md"
-                    value={ticketCount}
-                    onChange={handleTicketCountChange}
-                  >
-                    {Array.from({ length: maxTickets }, (_, i) => i + 1).map((count) => (
-                      <option key={count} value={count}>
-                        {count}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
               
-              <div className="mt-auto">
+              <div className="mt-auto space-y-6">
+                {!isUnavailable && (
+                  <div className="space-y-2">
+                    <Label htmlFor="slots">Number of Tickets</Label>
+                    <Input
+                      id="slots"
+                      type="number"
+                      min={1}
+                      max={exhibition.availableSlots}
+                      value={slots}
+                      onChange={(e) => setSlots(parseInt(e.target.value) || 1)}
+                    />
+                    <p className="text-sm text-gray-500">
+                      Total: {formatPrice(exhibition.ticketPrice * slots)}
+                    </p>
+                  </div>
+                )}
+                
                 <Button 
                   onClick={handleBookNow}
                   className={`w-full py-6 text-lg ${
-                    isSoldOut || isPast
-                      ? 'bg-gray-400 hover:bg-gray-400 text-white cursor-not-allowed'
-                      : 'bg-gold hover:bg-gold-dark text-white'
-                  }`}
-                  disabled={isSoldOut || isPast}
+                    isUnavailable 
+                      ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed' 
+                      : 'bg-gold hover:bg-gold-dark'
+                  } text-white`}
+                  disabled={isUnavailable}
                 >
-                  {isSoldOut ? 'Sold Out' : isPast ? 'Exhibition Ended' : 'Book Now'}
+                  {isSoldOut ? 'Sold Out' : isPast ? 'Past Exhibition' : 'Book Now'}
                 </Button>
               </div>
             </div>
           </div>
         </div>
+        
+        {relatedExhibitions.length > 0 && (
+          <div className="mt-16">
+            <h2 className="text-2xl font-serif font-bold mb-8">
+              Other Exhibitions You Might Like
+            </h2>
+            <div className="exhibition-grid">
+              {relatedExhibitions.map((relatedExhibition) => (
+                <ExhibitionCard key={relatedExhibition.id} exhibition={relatedExhibition} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

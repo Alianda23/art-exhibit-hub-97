@@ -3,7 +3,6 @@ from database import get_db_connection, dict_from_row, json_dumps
 from auth import verify_token
 import json
 from decimal import Decimal
-from datetime import datetime  # Add this import
 from image_utils import save_base64_image
 
 def get_all_artworks():
