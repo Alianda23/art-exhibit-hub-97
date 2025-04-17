@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAllArtworks, createArtwork, updateArtwork, deleteArtwork, ArtworkData } from '@/services/api';
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ArtworkForm from "@/components/ArtworkForm";
@@ -28,6 +28,46 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Mock data to use when backend is unavailable
+const mockArtworks: ArtworkData[] = [
+  {
+    id: "1",
+    title: "Sunset in Paradise",
+    artist: "Jane Doe",
+    description: "A beautiful sunset painting",
+    price: 1200,
+    imageUrl: "/placeholder.svg",
+    dimensions: "24 x 36 inches",
+    medium: "Oil on canvas",
+    year: 2023,
+    status: "available"
+  },
+  {
+    id: "2",
+    title: "Urban Landscape",
+    artist: "John Smith",
+    description: "Modern city skyline",
+    price: 950,
+    imageUrl: "/placeholder.svg",
+    dimensions: "18 x 24 inches",
+    medium: "Acrylic on canvas",
+    year: 2024,
+    status: "available"
+  },
+  {
+    id: "3",
+    title: "Abstract Emotions",
+    artist: "Maria Garcia",
+    description: "Expression of human emotions through colors",
+    price: 1500,
+    imageUrl: "/placeholder.svg",
+    dimensions: "30 x 40 inches",
+    medium: "Mixed media",
+    year: 2023,
+    status: "sold"
+  }
+];
+
 const AdminArtworks = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -35,11 +75,21 @@ const AdminArtworks = () => {
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [selectedArtwork, setSelectedArtwork] = useState<ArtworkData | null>(null);
   const [artworkToDelete, setArtworkToDelete] = useState<ArtworkData | null>(null);
+  const [offlineMode, setOfflineMode] = useState(false);
   
   // Fetch all artworks
   const { data, isLoading, error } = useQuery({
     queryKey: ['artworks'],
     queryFn: getAllArtworks,
+    onError: (error) => {
+      console.error("Failed to fetch artworks:", error);
+      setOfflineMode(true);
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Could not connect to server. Operating in offline mode.",
+      });
+    }
   });
 
   // Create artwork mutation
@@ -152,12 +202,28 @@ const AdminArtworks = () => {
 
   // Function to fix image URL issues
   const getValidImageUrl = (url: string) => {
+    if (!url) return "/placeholder.svg";
+    
+    // If it's already a valid URL or path, return it
+    if (url.startsWith('http') || url.startsWith('/')) {
+      return url;
+    }
+    
     // Fix common URL issues
     if (url.includes(';//')) {
       return url.replace(';//', '://');
     }
+    
+    // Add prefix if it's just a filename
+    if (!url.includes('/')) {
+      return `/static/uploads/${url}`;
+    }
+    
     return url;
   };
+
+  // Determine which artworks to display (real or mock)
+  const artworksToDisplay = offlineMode ? mockArtworks : (data || []);
 
   if (isLoading) {
     return (
@@ -168,18 +234,6 @@ const AdminArtworks = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <h1 className="text-2xl font-bold mb-6">Artworks Management</h1>
-        <p className="text-red-500">Error loading artworks</p>
-      </div>
-    );
-  }
-
-  const artworks = data || [];
-  console.log("Rendered artworks:", artworks);
-
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
@@ -188,6 +242,17 @@ const AdminArtworks = () => {
           <Plus className="w-4 h-4" /> Add New Artwork
         </Button>
       </div>
+      
+      {offlineMode && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+          <div className="flex items-center">
+            <AlertTriangle className="h-5 w-5 text-yellow-400 mr-2" />
+            <p className="text-sm text-yellow-700">
+              <span className="font-medium">Warning:</span> Operating in offline mode with sample data. Changes will not be saved to the server.
+            </p>
+          </div>
+        </div>
+      )}
       
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
@@ -203,14 +268,14 @@ const AdminArtworks = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {artworks.length === 0 ? (
+              {artworksToDisplay.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-4">
                     No artworks found
                   </TableCell>
                 </TableRow>
               ) : (
-                artworks.map((artwork: ArtworkData) => (
+                artworksToDisplay.map((artwork: ArtworkData) => (
                   <TableRow key={artwork.id}>
                     <TableCell>
                       <img 
