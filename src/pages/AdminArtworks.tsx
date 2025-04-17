@@ -76,21 +76,23 @@ const AdminArtworks = () => {
   const [artworkToDelete, setArtworkToDelete] = useState<ArtworkData | null>(null);
   const [offlineMode, setOfflineMode] = useState(false);
   
-  // Fetch all artworks - updated to fix the onSettled issue
+  // Fetch all artworks - updated to fix the onSettled/onSuccess issue
   const { data, isLoading, error } = useQuery({
     queryKey: ['artworks'],
     queryFn: getAllArtworks,
-    onSuccess: (data) => {
-      console.log("Successfully fetched artworks:", data);
-    },
-    onError: (error) => {
-      console.error("Failed to fetch artworks:", error);
-      setOfflineMode(true);
-      toast({
-        variant: "destructive",
-        title: "Connection Error",
-        description: "Could not connect to server. Operating in offline mode.",
-      });
+    onSettled: (data, error) => {
+      if (data) {
+        console.log("Successfully fetched artworks:", data);
+      }
+      if (error) {
+        console.error("Failed to fetch artworks:", error);
+        setOfflineMode(true);
+        toast({
+          variant: "destructive",
+          title: "Connection Error",
+          description: "Could not connect to server. Operating in offline mode.",
+        });
+      }
     }
   });
 
@@ -207,15 +209,9 @@ const AdminArtworks = () => {
     if (!url) return "/placeholder.svg";
     
     // If it's already a valid URL or path, return it
-    if (url.startsWith('http') || url.startsWith('/')) {
-      // Make sure it has the correct prefix for server files
-      if (url.startsWith('/static/uploads/') || url.startsWith('http')) {
-        console.log("Valid image URL:", url);
-        return url;
-      } else if (url.startsWith('/')) {
-        console.log("Prefixing URL:", `/static/uploads${url}`);
-        return `/static/uploads${url}`;
-      }
+    if (url.startsWith('http') || url.startsWith('/static/uploads/')) {
+      console.log("Valid image URL:", url);
+      return url;
     }
     
     // Fix common URL issues
@@ -225,10 +221,13 @@ const AdminArtworks = () => {
       return fixed;
     }
     
-    // Add prefix if it's just a filename
-    if (!url.includes('/')) {
-      console.log("Adding prefix to filename:", `/static/uploads/${url}`);
-      return `/static/uploads/${url}`;
+    // Add prefix if it's just a filename or incorrect path
+    if (!url.includes('/') || url.startsWith('/')) {
+      const newUrl = url.startsWith('/') 
+        ? `/static/uploads${url}` 
+        : `/static/uploads/${url}`;
+      console.log("Adding prefix to path:", newUrl);
+      return newUrl;
     }
     
     console.log("Using URL as-is:", url);
