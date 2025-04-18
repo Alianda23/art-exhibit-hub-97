@@ -40,8 +40,12 @@ def save_image_from_base64(base64_str, name_prefix="artwork"):
             # Assume it's just the base64 data
             base64_data = base64_str
         
-        # Decode the base64 data
-        image_data = base64.b64decode(base64_data)
+        try:
+            # Decode the base64 data
+            image_data = base64.b64decode(base64_data)
+        except Exception as e:
+            print(f"Failed to decode base64 data: {e}")
+            return "/static/uploads/placeholder.jpg"
         
         # Generate a unique filename based on timestamp
         timestamp = time.strftime("%Y%m%d%H%M%S")
@@ -89,8 +93,18 @@ def get_all_artworks():
             
             # Format image URL if needed - ALWAYS ensure it has the correct prefix
             if artwork['image_url']:
-                if not artwork['image_url'].startswith('/static/'):
+                # Handle base64 images
+                if artwork['image_url'].startswith('data:') or 'base64' in artwork['image_url']:
+                    # Save the base64 image to a file and get its path
+                    saved_path = save_image_from_base64(artwork['image_url'])
+                    if saved_path:
+                        # Update the database with the new path
+                        update_artwork_image(artwork['id'], saved_path)
+                        artwork['image_url'] = saved_path
+                        print(f"Converted base64 image to file: {saved_path}")
+                elif not artwork['image_url'].startswith('/static/'):
                     artwork['image_url'] = f"/static/uploads/{os.path.basename(artwork['image_url'])}"
+                
                 # Log the final image URL for debugging
                 print(f"Final image URL for {artwork['title']}: {artwork['image_url']}")
                 
@@ -100,6 +114,31 @@ def get_all_artworks():
     except Exception as e:
         print(f"Error getting artworks: {e}")
         return {"error": str(e)}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def update_artwork_image(artwork_id, image_path):
+    """Update the image_url in the database for an artwork"""
+    connection = get_db_connection()
+    if connection is None:
+        return False
+    
+    cursor = connection.cursor()
+    
+    try:
+        query = """
+        UPDATE artworks
+        SET image_url = %s
+        WHERE id = %s
+        """
+        cursor.execute(query, (image_path, artwork_id))
+        connection.commit()
+        return True
+    except Exception as e:
+        print(f"Error updating artwork image: {e}")
+        return False
     finally:
         if connection.is_connected():
             cursor.close()
@@ -131,8 +170,18 @@ def get_artwork(artwork_id):
         artwork['id'] = str(artwork['id'])
         
         # Format image URL if needed
-        if artwork['image_url'] and not artwork['image_url'].startswith('/static/'):
-            artwork['image_url'] = f"/static/uploads/{os.path.basename(artwork['image_url'])}"
+        if artwork['image_url']:
+            # Handle base64 images
+            if artwork['image_url'].startswith('data:') or 'base64' in artwork['image_url']:
+                # Save the base64 image to a file and get its path
+                saved_path = save_image_from_base64(artwork['image_url'])
+                if saved_path:
+                    # Update the database with the new path
+                    update_artwork_image(artwork['id'], saved_path)
+                    artwork['image_url'] = saved_path
+                    print(f"Converted base64 image to file: {saved_path}")
+            elif not artwork['image_url'].startswith('/static/'):
+                artwork['image_url'] = f"/static/uploads/{os.path.basename(artwork['image_url'])}"
         
         return artwork
     except Exception as e:

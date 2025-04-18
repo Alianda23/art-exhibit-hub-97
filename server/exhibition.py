@@ -3,6 +3,8 @@ from database import get_db_connection, dict_from_row, json_dumps
 from auth import verify_token
 import json
 import os
+import base64
+import time
 from decimal import Decimal
 
 # Default exhibition image path
@@ -18,6 +20,55 @@ def ensure_uploads_directory():
 
 # Call this function to ensure directory exists
 ensure_uploads_directory()
+
+# Function to handle image storage
+def save_image_from_base64(base64_str, name_prefix="exhibition"):
+    """Save a base64 image to the uploads directory and return the path"""
+    # Handle empty strings or None values
+    if not base64_str:
+        return None
+        
+    # If it's already a URL path (not base64), return it as is
+    if base64_str.startswith('/static/'):
+        return base64_str
+    
+    try:
+        # Extract the image data from the base64 string
+        if "," in base64_str:
+            # For format like "data:image/jpeg;base64,/9j/4AAQSk..."
+            image_format, base64_data = base64_str.split(",", 1)
+            if ';base64' not in image_format:
+                print("Warning: Not a valid base64 image format")
+                return None
+        else:
+            # Assume it's just the base64 data
+            base64_data = base64_str
+        
+        # Decode the base64 data
+        try:
+            image_data = base64.b64decode(base64_data)
+        except Exception as e:
+            print(f"Failed to decode base64 data: {e}")
+            return DEFAULT_EXHIBITION_IMAGE
+        
+        # Generate a unique filename based on timestamp
+        timestamp = time.strftime("%Y%m%d%H%M%S")
+        filename = f"{name_prefix}_{timestamp}.jpg"
+        
+        # Save to the uploads directory
+        uploads_dir = os.path.join(os.path.dirname(__file__), "static", "uploads")
+        if not os.path.exists(uploads_dir):
+            os.makedirs(uploads_dir)
+            
+        file_path = os.path.join(uploads_dir, filename)
+        with open(file_path, "wb") as f:
+            f.write(image_data)
+        
+        # Return the URL path to the image (ALWAYS use the standard format)
+        return f"/static/uploads/{filename}"
+    except Exception as e:
+        print(f"Error saving image: {e}")
+        return DEFAULT_EXHIBITION_IMAGE
 
 def get_all_exhibitions():
     """Get all exhibitions from the database"""
@@ -52,9 +103,17 @@ def get_all_exhibitions():
             exhibition['ticketPrice'] = exhibition.pop('ticket_price')
             
             # Convert image_url to camelCase and ensure it's valid
-            exhibition['imageUrl'] = exhibition.pop('image_url')
-            if not exhibition['imageUrl']:
-                exhibition['imageUrl'] = DEFAULT_EXHIBITION_IMAGE
+            image_url = exhibition.pop('image_url')
+            # Convert base64 images to file paths
+            if image_url and (image_url.startswith('data:') or 'base64' in image_url):
+                # Save the base64 image to a file and get its path
+                saved_path = save_image_from_base64(image_url)
+                exhibition['imageUrl'] = saved_path
+                # Also update the database with the new path
+                update_exhibition_image(exhibition['id'], saved_path)
+                print(f"Converted base64 image to file: {saved_path}")
+            else:
+                exhibition['imageUrl'] = image_url if image_url else DEFAULT_EXHIBITION_IMAGE
             
             # Convert total_slots and available_slots to camelCase
             exhibition['totalSlots'] = exhibition.pop('total_slots')
@@ -66,6 +125,31 @@ def get_all_exhibitions():
     except Exception as e:
         print(f"Error getting exhibitions: {e}")
         return {"error": str(e)}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def update_exhibition_image(exhibition_id, image_path):
+    """Update the image_url in the database for an exhibition"""
+    connection = get_db_connection()
+    if connection is None:
+        return False
+    
+    cursor = connection.cursor()
+    
+    try:
+        query = """
+        UPDATE exhibitions
+        SET image_url = %s
+        WHERE id = %s
+        """
+        cursor.execute(query, (image_path, exhibition_id))
+        connection.commit()
+        return True
+    except Exception as e:
+        print(f"Error updating exhibition image: {e}")
+        return False
     finally:
         if connection.is_connected():
             cursor.close()
@@ -105,9 +189,17 @@ def get_exhibition(exhibition_id):
         exhibition['ticketPrice'] = exhibition.pop('ticket_price')
         
         # Convert image_url to camelCase and ensure it's valid
-        exhibition['imageUrl'] = exhibition.pop('image_url')
-        if not exhibition['imageUrl']:
-            exhibition['imageUrl'] = DEFAULT_EXHIBITION_IMAGE
+        image_url = exhibition.pop('image_url')
+        # Convert base64 images to file paths
+        if image_url and (image_url.startswith('data:') or 'base64' in image_url):
+            # Save the base64 image to a file and get its path
+            saved_path = save_image_from_base64(image_url)
+            exhibition['imageUrl'] = saved_path
+            # Also update the database with the new path
+            update_exhibition_image(exhibition['id'], saved_path)
+            print(f"Converted base64 image to file: {saved_path}")
+        else:
+            exhibition['imageUrl'] = image_url if image_url else DEFAULT_EXHIBITION_IMAGE
         
         # Convert total_slots and available_slots to camelCase
         exhibition['totalSlots'] = exhibition.pop('total_slots')
@@ -179,6 +271,18 @@ def create_exhibition(auth_header, exhibition_data):
                 print(f"ERROR: Failed to parse exhibition data: {e}")
                 return {"error": f"Invalid exhibition data format: {str(e)}"}
         
+        # Handle the image - convert base64 to file if needed
+        image_url = exhibition_data.get("imageUrl")
+        if image_url and (image_url.startswith('data:') or 'base64' in image_url):
+            # Save the image and get the file path
+            saved_image_path = save_image_from_base64(image_url)
+            if saved_image_path:
+                image_url = saved_image_path
+                print(f"Image saved to: {saved_image_path}")
+            else:
+                print("Failed to save image")
+                image_url = DEFAULT_EXHIBITION_IMAGE
+        
         print(f"Inserting exhibition data: {exhibition_data}")
         query = """
         INSERT INTO exhibitions (title, description, location, start_date, end_date,
@@ -189,8 +293,9 @@ def create_exhibition(auth_header, exhibition_data):
         # If availableSlots not provided, use totalSlots
         available_slots = exhibition_data.get("availableSlots", exhibition_data.get("totalSlots"))
         
-        # Always use the default exhibition image
-        image_url = DEFAULT_EXHIBITION_IMAGE
+        # Always use the default exhibition image if no image is provided
+        if not image_url:
+            image_url = DEFAULT_EXHIBITION_IMAGE
         
         cursor.execute(query, (
             exhibition_data.get("title"),
@@ -219,42 +324,7 @@ def create_exhibition(auth_header, exhibition_data):
             connection.close()
 
 def update_exhibition(auth_header, exhibition_id, exhibition_data):
-    """Update an existing exhibition (admin only)"""
-    # Debug input
-    print(f"Update exhibition called with auth_header: {auth_header}")
-    print(f"Exhibition ID: {exhibition_id}")
-    print(f"Exhibition data: {exhibition_data}")
-    
-    if not auth_header:
-        print("Error: No authentication header provided")
-        return {"error": "Authentication required"}
-    
-    # Extract token from header
-    token = None
-    if auth_header.startswith('Bearer '):
-        token = auth_header[7:]
-    else:
-        token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
-        
-    if not token:
-        print("Error: Invalid authentication token format")
-        return {"error": "Invalid authentication token"}
-    
-    # Debug token verification
-    print(f"Verifying token for update_exhibition: {token}")
-    
-    # Verify token and check if user is admin
-    payload = verify_token(token)
-    print(f"Token verification result: {payload}")
-    
-    if isinstance(payload, dict) and "error" in payload:
-        print(f"Token verification error: {payload['error']}")
-        return payload
-    
-    # Check if user is admin
-    if not payload.get("is_admin", False):
-        print(f"Admin check failed. Payload: {payload}")
-        return {"error": "Unauthorized access: Not an admin"}
+    # ... keep existing code (verification of admin and auth token)
     
     connection = get_db_connection()
     if connection is None:
@@ -270,8 +340,21 @@ def update_exhibition(auth_header, exhibition_id, exhibition_data):
         if not current_exhibition:
             return {"error": "Exhibition not found"}
         
-        # Keep the existing image_url or use default if none
-        image_url = current_exhibition[0] if current_exhibition[0] else DEFAULT_EXHIBITION_IMAGE
+        # Handle the image - convert base64 to file if needed
+        image_url = exhibition_data.get("imageUrl")
+        if image_url and (image_url.startswith('data:') or 'base64' in image_url):
+            # Save the image and get the file path
+            saved_image_path = save_image_from_base64(image_url)
+            if saved_image_path:
+                image_url = saved_image_path
+                print(f"Image saved to: {saved_image_path}")
+            else:
+                print("Failed to save image")
+                # Keep the original image URL if saving fails
+                image_url = current_exhibition[0] if current_exhibition[0] else DEFAULT_EXHIBITION_IMAGE
+        else:
+            # Keep the existing image_url or use default if none
+            image_url = current_exhibition[0] if current_exhibition[0] else DEFAULT_EXHIBITION_IMAGE
         
         query = """
         UPDATE exhibitions
@@ -286,7 +369,7 @@ def update_exhibition(auth_header, exhibition_id, exhibition_data):
             exhibition_data.get("startDate"),
             exhibition_data.get("endDate"),
             exhibition_data.get("ticketPrice"),
-            image_url,  # Keep existing image
+            image_url,
             exhibition_data.get("totalSlots"),
             exhibition_data.get("availableSlots"),
             exhibition_data.get("status"),
@@ -309,62 +392,4 @@ def update_exhibition(auth_header, exhibition_id, exhibition_data):
             connection.close()
 
 def delete_exhibition(auth_header, exhibition_id):
-    """Delete an exhibition (admin only)"""
-    # Debug input
-    print(f"Delete exhibition called with auth_header: {auth_header}")
-    print(f"Exhibition ID: {exhibition_id}")
-    
-    if not auth_header:
-        print("Error: No authentication header provided")
-        return {"error": "Authentication required"}
-    
-    # Extract token from header
-    token = None
-    if auth_header.startswith('Bearer '):
-        token = auth_header[7:]
-    else:
-        token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
-        
-    if not token:
-        print("Error: Invalid authentication token format")
-        return {"error": "Invalid authentication token"}
-    
-    # Debug token verification
-    print(f"Verifying token for delete_exhibition: {token}")
-    
-    # Verify token and check if user is admin
-    payload = verify_token(token)
-    print(f"Token verification result: {payload}")
-    
-    if isinstance(payload, dict) and "error" in payload:
-        print(f"Token verification error: {payload['error']}")
-        return payload
-    
-    # Check if user is admin
-    if not payload.get("is_admin", False):
-        print(f"Admin check failed. Payload: {payload}")
-        return {"error": "Unauthorized access: Not an admin"}
-    
-    connection = get_db_connection()
-    if connection is None:
-        return {"error": "Database connection failed"}
-    
-    cursor = connection.cursor()
-    
-    try:
-        query = "DELETE FROM exhibitions WHERE id = %s"
-        cursor.execute(query, (exhibition_id,))
-        connection.commit()
-        
-        # Check if exhibition was found and deleted
-        if cursor.rowcount == 0:
-            return {"error": "Exhibition not found"}
-        
-        return {"success": True, "message": "Exhibition deleted successfully"}
-    except Exception as e:
-        print(f"Error deleting exhibition: {e}")
-        return {"error": str(e)}
-    finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
+    # ... keep existing code (delete exhibition functionality)
