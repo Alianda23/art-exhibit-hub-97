@@ -73,7 +73,7 @@ const AdminMessages = () => {
   }, [navigate]);
 
   // Fetch all contact messages
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['contactMessages'],
     queryFn: async () => {
       console.log('Fetching contact messages');
@@ -96,6 +96,7 @@ const AdminMessages = () => {
       updateMessageStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contactMessages'] });
+      refetch(); // Explicitly refetch after successful update
       toast({
         title: "Status updated",
         description: "Message status has been updated successfully",
@@ -112,6 +113,7 @@ const AdminMessages = () => {
   });
 
   const handleStatusChange = (id: string, status: 'new' | 'read' | 'replied') => {
+    console.log(`Updating message ${id} status to ${status}`);
     updateStatusMutation.mutate({ id, status });
   };
 
@@ -119,6 +121,7 @@ const AdminMessages = () => {
     try {
       return format(new Date(dateString), 'PPP p'); // e.g. "Apr 29, 2023, 5:30 PM"
     } catch (error) {
+      console.error(`Error formatting date ${dateString}:`, error);
       return dateString;
     }
   };
@@ -137,6 +140,9 @@ const AdminMessages = () => {
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-6">Contact Messages</h1>
         <p className="text-red-500">Error loading messages: {String(error)}</p>
+        <Button onClick={() => refetch()} className="mt-4">
+          Try Again
+        </Button>
       </div>
     );
   }
@@ -150,7 +156,10 @@ const AdminMessages = () => {
       
       <div className="grid gap-6 md:grid-cols-[1fr_1fr]">
         <Card className="p-4">
-          <h2 className="text-xl font-semibold mb-4">Messages ({messages.length})</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Messages ({messages.length})</h2>
+            <Button size="sm" onClick={() => refetch()}>Refresh</Button>
+          </div>
           
           {messages.length === 0 ? (
             <p className="text-gray-500">No messages to display</p>

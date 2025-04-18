@@ -1,3 +1,4 @@
+
 import mysql.connector
 from mysql.connector import Error
 import json
@@ -58,17 +59,22 @@ def save_contact_message(name, email, phone, message, source='contact_form'):
         
         if not source_exists:
             # Add source column if it doesn't exist
+            print("Adding source column to contact_messages table")
             cursor.execute("ALTER TABLE contact_messages ADD COLUMN source VARCHAR(50) DEFAULT 'contact_form'")
+            connection.commit()
         
         # Insert the message into the database
         query = """
-        INSERT INTO contact_messages (name, email, phone, message, source)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO contact_messages (name, email, phone, message, source, status)
+        VALUES (%s, %s, %s, %s, %s, 'new')
         """
         cursor.execute(query, (name, email, phone, message, source))
         connection.commit()
         
-        return {"success": True, "message_id": cursor.lastrowid}
+        message_id = cursor.lastrowid
+        print(f"Inserted new message with ID: {message_id}")
+        
+        return {"success": True, "message_id": message_id}
     
     except Error as e:
         print(f"Error saving contact message: {e}")
@@ -98,8 +104,10 @@ def get_all_contact_messages():
         
         messages = []
         for row in rows:
-            messages.append(dict_from_row(row, cursor))
+            message_dict = dict_from_row(row, cursor)
+            messages.append(message_dict)
         
+        print(f"Retrieved {len(messages)} messages")
         return {"messages": messages}
     
     except Error as e:
@@ -130,9 +138,11 @@ def update_message_status(message_id, status):
         connection.commit()
         
         if cursor.rowcount == 0:
+            print(f"Message with ID {message_id} not found")
             return {"error": "Message not found"}
         
-        return {"success": True}
+        print(f"Updated message {message_id} status to {status}")
+        return {"success": True, "message_id": message_id, "status": status}
     
     except Error as e:
         print(f"Error updating message status: {e}")

@@ -1,4 +1,3 @@
-
 import os
 import json
 import http.server
@@ -346,23 +345,6 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         
         # Create contact message
         elif path == '/contact':
-            # Get content length
-            content_length = int(self.headers.get('Content-Length', 0))
-            
-            # Parse JSON data
-            post_data = {}
-            if content_length > 0:
-                post_data = json.loads(self.rfile.read(content_length).decode('utf-8'))
-            
-            # Check required fields
-            required_fields = ['name', 'email', 'message']
-            missing_fields = [field for field in required_fields if field not in post_data]
-            
-            if missing_fields:
-                self._set_response(400)
-                self.wfile.write(json_dumps({"error": f"Missing required fields: {', '.join(missing_fields)}"}).encode())
-                return
-            
             response = create_contact_message(post_data)
             
             if "error" in response:
@@ -374,10 +356,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             return
         
         # Update message status (admin only)
-        elif path == '/messages/status':
-            auth_header = self.headers.get('Authorization', '')
-            
-            # Verify admin token and extract user info
+        elif path.startswith('/messages/'):
+            message_id = path.split('/')[2]
             token = extract_auth_token(self)
             if not token:
                 self._set_response(401)
@@ -396,13 +376,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(json_dumps({"error": "Unauthorized access: Admin privileges required"}).encode())
                 return
             
-            # Check required fields
-            if 'message_id' not in post_data or 'status' not in post_data:
-                self._set_response(400)
-                self.wfile.write(json_dumps({"error": "Message ID and status required"}).encode())
-                return
-            
-            response = update_message_status(post_data['message_id'], post_data['status'])
+            response = update_message(self.headers.get('Authorization', ''), message_id, post_data)
             
             if "error" in response:
                 self._set_response(400)

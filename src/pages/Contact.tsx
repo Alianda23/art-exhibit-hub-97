@@ -48,6 +48,8 @@ const Contact = () => {
     setSubmitStatus('idle');
     
     try {
+      console.log("Submitting contact form data:", formData);
+      
       // Submit to backend with source explicitly set to 'contact_form'
       const result = await submitContactMessage({
         ...formData,

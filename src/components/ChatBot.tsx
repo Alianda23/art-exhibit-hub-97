@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -108,6 +107,7 @@ const ChatBot: React.FC = () => {
     phone: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -238,12 +238,17 @@ Phone: ${contactInfo.phone}
 Message: ${contactInfo.message}
     `;
     
+    setIsSubmitting(true);
+    
     try {
+      console.log("Sending chat message to WhatsApp and admin panel:", contactInfo);
+      
       // Send message to WhatsApp
-      await sendWhatsAppMessage(whatsappMessage);
+      const whatsappResult = await sendWhatsAppMessage(whatsappMessage);
+      console.log("WhatsApp message result:", whatsappResult);
       
       // Also send to the admin panel via contact endpoint
-      await submitContactMessage({
+      const contactResult = await submitContactMessage({
         name: contactInfo.name,
         email: contactInfo.email,
         phone: contactInfo.phone,
@@ -251,12 +256,19 @@ Message: ${contactInfo.message}
         source: 'chat_bot' // Add source to identify it came from chat
       });
       
+      console.log("Contact submission result:", contactResult);
+      
       setMessages(prev => [...prev, {
         id: Date.now(),
         content: "Thank you! Your information has been sent to our team. We'll get back to you as soon as possible via WhatsApp (+254741080177) or email.",
         sender: 'bot',
         timestamp: new Date()
       }]);
+      
+      toast({
+        title: "Message sent",
+        description: "We've received your message and will get back to you soon!",
+      });
       
       setContactInfo({
         name: '',
@@ -273,6 +285,8 @@ Message: ${contactInfo.message}
         description: "Failed to send your message. Please try again later.",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -339,6 +353,7 @@ Message: ${contactInfo.message}
                       onChange={(e) => setContactInfo({...contactInfo, name: e.target.value})}
                       placeholder="Your name" 
                       required 
+                      disabled={isSubmitting}
                     />
                   </div>
                   
@@ -351,6 +366,7 @@ Message: ${contactInfo.message}
                       onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})}
                       placeholder="Your email" 
                       required 
+                      disabled={isSubmitting}
                     />
                   </div>
                   
@@ -362,6 +378,7 @@ Message: ${contactInfo.message}
                       onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})}
                       placeholder="+254..." 
                       required 
+                      disabled={isSubmitting}
                     />
                   </div>
                   
@@ -374,11 +391,16 @@ Message: ${contactInfo.message}
                       placeholder="Please provide more details about your inquiry" 
                       rows={3}
                       required 
+                      disabled={isSubmitting}
                     />
                   </div>
                   
-                  <Button type="submit" className="w-full bg-gold hover:bg-gold-dark">
-                    Submit
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gold hover:bg-gold-dark"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Sending..." : "Submit"}
                   </Button>
                 </div>
               </form>

@@ -423,11 +423,13 @@ export const submitContactMessage = async (messageData: ContactMessage) => {
 
 // Get all contact messages (admin only)
 export const getAllContactMessages = async () => {
+  console.log("Fetching all contact messages with auth token");
   return await authFetch('/messages');
 };
 
 // Update message status (admin only)
 export const updateMessageStatus = async (id: string, status: 'new' | 'read' | 'replied') => {
+  console.log(`Updating message ${id} status to ${status}`);
   return await authFetch(`/messages/${id}`, {
     method: 'PUT',
     body: JSON.stringify({ status }),
