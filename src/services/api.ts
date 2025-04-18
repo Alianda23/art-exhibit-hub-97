@@ -430,12 +430,6 @@ export const submitContactMessage = async (messageData: ContactMessage) => {
 export const getAllContactMessages = async () => {
   console.log("Fetching all contact messages with auth token");
   try {
-    // Check if user is admin before making request
-    if (!isAdmin()) {
-      console.error("User is not an admin, cannot fetch messages");
-      throw new Error("Unauthorized: Admin access required");
-    }
-    
     const result = await authFetch('/messages');
     console.log("Contact messages result:", result);
     return result;

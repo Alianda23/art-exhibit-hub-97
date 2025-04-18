@@ -165,12 +165,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             print(f"Get messages response: {response}")
             
             if "error" in response:
-                error_message = response["error"]
-                if "Unauthorized" in error_message:
-                    self._set_response(401)
-                else:
-                    self._set_response(400)
-                self.wfile.write(json_dumps({"error": error_message}).encode())
+                self._set_response(401)
+                self.wfile.write(json_dumps({"error": response["error"]}).encode())
                 return
             
             self._set_response()

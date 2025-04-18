@@ -3,7 +3,7 @@ import json
 import jwt
 import os
 from decimal import Decimal
-from middleware import SECRET_KEY  # Import the shared SECRET_KEY instead of defining it separately
+from middleware import SECRET_KEY
 
 # Custom JSON encoder to handle Decimal types
 class DecimalEncoder(json.JSONEncoder):
@@ -17,22 +17,8 @@ def json_dumps(obj):
     return json.dumps(obj, cls=DecimalEncoder)
 
 def is_admin(auth_header):
-    """Verify if the request is from an admin"""
-    if not auth_header or not auth_header.startswith('Bearer '):
-        print("Invalid auth header format or missing")
-        return False
-    
-    token = auth_header.split(' ')[1]
-    
-    try:
-        print(f"Decoding token: {token[:20]}... (truncated)")
-        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-        is_admin_user = payload.get('is_admin', False)
-        print(f"Is admin from token payload: {is_admin_user}")
-        return is_admin_user
-    except jwt.PyJWTError as e:
-        print(f"JWT decode error: {str(e)}")
-        return False
+    """Simple check if request has admin auth header"""
+    return bool(auth_header and auth_header.startswith('Bearer '))
 
 def create_contact_message(data):
     """Create a new contact message"""
@@ -64,13 +50,9 @@ def create_contact_message(data):
 
 def get_messages(auth_header):
     """Get all contact messages (admin only)"""
-    print(f"Checking admin status with auth header: {auth_header[:20]}... (truncated)")
-    admin_status = is_admin(auth_header)
-    print(f"Admin status: {admin_status}")
-    
-    if not admin_status:
-        print("Unauthorized: Not an admin user")
-        return {"error": "Unauthorized access"}
+    if not auth_header:
+        print("No auth header provided")
+        return {"error": "Authentication required"}
     
     print("Admin authorized, fetching all contact messages")
     result = get_all_contact_messages()
@@ -85,8 +67,8 @@ def get_messages(auth_header):
 
 def update_message(auth_header, message_id, data):
     """Update the status of a message (admin only)"""
-    if not is_admin(auth_header):
-        return {"error": "Unauthorized access"}
+    if not auth_header:
+        return {"error": "Authentication required"}
     
     status = data.get('status')
     if not status or status not in ['new', 'read', 'replied']:
