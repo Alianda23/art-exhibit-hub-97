@@ -13,6 +13,17 @@ export const getValidImageUrl = (url: string | undefined): string => {
     return url;
   }
   
+  // Handle base64 data
+  if (url.startsWith('data:') || url.includes('base64')) {
+    // For very long base64 strings, they might be truncated in the database
+    // If they're truncated, it's better to use a placeholder
+    if (url.length < 100 || !url.includes(',')) {
+      console.log("Detected incomplete base64 image, using placeholder instead");
+      return "/placeholder.svg";
+    }
+    return url;
+  }
+  
   // Fix malformed URLs (a common issue with some APIs)
   if (url.includes(';//')) {
     const fixed = url.replace(';//', '://');
@@ -70,7 +81,9 @@ export const getValidImageUrl = (url: string | undefined): string => {
 // Create a component-ready image URL with fallback
 export const createImageSrc = (url: string | undefined, defaultImage = "/placeholder.svg"): string => {
   try {
-    return getValidImageUrl(url) || defaultImage;
+    const processedUrl = getValidImageUrl(url);
+    console.log(`Processing image URL: ${url} → ${processedUrl}`);
+    return processedUrl || defaultImage;
   } catch (error) {
     console.error("Error processing image URL:", error);
     return defaultImage;
