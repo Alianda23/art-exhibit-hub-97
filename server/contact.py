@@ -1,20 +1,24 @@
+
 from database import save_contact_message, get_all_contact_messages, update_message_status
 import json
 import jwt
 import os
 from decimal import Decimal
 from middleware import SECRET_KEY
+from datetime import datetime
 
-# Custom JSON encoder to handle Decimal types
-class DecimalEncoder(json.JSONEncoder):
+# Custom JSON encoder to handle Decimal types and datetime objects
+class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
-        return super(DecimalEncoder, self).default(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super(CustomJSONEncoder, self).default(obj)
 
 def json_dumps(obj):
-    """Convert object to JSON string, handling Decimal types"""
-    return json.dumps(obj, cls=DecimalEncoder)
+    """Convert object to JSON string, handling Decimal and datetime types"""
+    return json.dumps(obj, cls=CustomJSONEncoder)
 
 def is_admin(auth_header):
     """Simple check if request has admin auth header"""
@@ -60,7 +64,7 @@ def get_messages(auth_header):
     # Print result for debugging
     print(f"Fetch messages result: {result}")
     
-    # Use custom JSON encoder for Decimal values and convert all Decimal to float
+    # Use custom JSON encoder for Decimal and datetime values
     if isinstance(result, dict) and 'messages' in result:
         return json.loads(json_dumps(result))
     return result

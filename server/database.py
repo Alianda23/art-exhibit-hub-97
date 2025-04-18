@@ -3,12 +3,15 @@ import mysql.connector
 from mysql.connector import Error
 import json
 from decimal import Decimal
+from datetime import datetime
 
-# Custom JSON encoder to handle Decimal types
+# Custom JSON encoder to handle Decimal types and datetime objects
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
         return super(DecimalEncoder, self).default(obj)
 
 # Database connection configuration
@@ -29,9 +32,9 @@ def get_db_connection():
         print(f"Error connecting to MySQL: {e}")
     return None
 
-# Helper function to safely encode JSON with Decimal values
+# Helper function to safely encode JSON with Decimal and datetime values
 def json_dumps(data):
-    """Safely convert data to JSON string, handling Decimal types"""
+    """Safely convert data to JSON string, handling Decimal and datetime types"""
     return json.dumps(data, cls=DecimalEncoder)
 
 def dict_from_row(row, cursor):
