@@ -68,6 +68,80 @@ class DecimalEncoder(json.JSONEncoder):
             return obj.isoformat()
         return super(DecimalEncoder, self).default(obj)
 
+# Mock data for tickets (in a real app, this would come from a database)
+# We'll use this for demo purposes
+mock_tickets = [
+    {
+        "id": "ticket-001",
+        "userId": "user-123",
+        "userName": "John Doe",
+        "exhibitionId": "exhibition-1",
+        "exhibitionTitle": "Modern Art Showcase",
+        "bookingDate": "2025-04-20T14:00:00",
+        "ticketCode": "EXHB-001-123",
+        "slots": 2,
+        "status": "active"
+    },
+    {
+        "id": "ticket-002",
+        "userId": "user-456",
+        "userName": "Jane Smith",
+        "exhibitionId": "exhibition-2",
+        "exhibitionTitle": "Classical Paintings",
+        "bookingDate": "2025-04-21T10:30:00",
+        "ticketCode": "EXHB-002-456",
+        "slots": 1,
+        "status": "used"
+    },
+    {
+        "id": "ticket-003",
+        "userId": "user-789",
+        "userName": "Alex Johnson",
+        "exhibitionId": "exhibition-1",
+        "exhibitionTitle": "Modern Art Showcase",
+        "bookingDate": "2025-04-22T16:15:00",
+        "ticketCode": "EXHB-001-789",
+        "slots": 3,
+        "status": "cancelled"
+    }
+]
+
+# Function to get all tickets (mock implementation)
+def get_all_tickets(auth_header):
+    # Extract and verify token
+    token = extract_auth_token(auth_header)
+    if not token:
+        return {"error": "Authentication required"}
+    
+    payload = verify_token(token)
+    if isinstance(payload, dict) and "error" in payload:
+        return {"error": payload["error"]}
+    
+    # Check if user is admin
+    if not payload.get("is_admin", False):
+        return {"error": "Unauthorized access: Admin privileges required"}
+    
+    # Return tickets data
+    return {"tickets": mock_tickets}
+
+# Function to generate exhibition ticket (mock implementation)
+def generate_ticket(booking_id, auth_header):
+    # Extract and verify token
+    token = extract_auth_token(auth_header)
+    if not token:
+        return {"error": "Authentication required"}
+    
+    payload = verify_token(token)
+    if isinstance(payload, dict) and "error" in payload:
+        return {"error": payload["error"]}
+    
+    # In a real application, we would generate a PDF here
+    # For demo purposes, we'll return mock data
+    return {
+        "pdfData": "Mock PDF data for ticket " + booking_id,
+        "success": True
+    }
+
 class RequestHandler(http.server.BaseHTTPRequestHandler):
     
     def _set_response(self, status_code=200, content_type='application/json'):
@@ -165,6 +239,43 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             # Get messages
             response = get_messages(auth_header)
             print(f"Get messages response: {response}")
+            
+            if "error" in response:
+                self._set_response(401)
+                self.wfile.write(json_dumps({"error": response["error"]}).encode())
+                return
+            
+            self._set_response()
+            self.wfile.write(json_dumps(response).encode())
+            return
+            
+        # Handle GET /tickets (admin only)
+        elif path == '/tickets':
+            print("Processing GET /tickets request")
+            auth_header = self.headers.get('Authorization', '')
+            print(f"Authorization header: {auth_header[:20]}... (truncated)")
+            
+            # Get tickets
+            response = get_all_tickets(auth_header)
+            print(f"Get tickets response: {response}")
+            
+            if "error" in response:
+                self._set_response(401)
+                self.wfile.write(json_dumps({"error": response["error"]}).encode())
+                return
+            
+            self._set_response()
+            self.wfile.write(json_dumps(response).encode())
+            return
+            
+        # Handle GET /tickets/generate/{id} (generate ticket)
+        elif path.startswith('/tickets/generate/') and len(path.split('/')) == 4:
+            booking_id = path.split('/')[3]
+            print(f"Processing generate ticket request for booking {booking_id}")
+            auth_header = self.headers.get('Authorization', '')
+            
+            # Generate ticket
+            response = generate_ticket(booking_id, auth_header)
             
             if "error" in response:
                 self._set_response(401)

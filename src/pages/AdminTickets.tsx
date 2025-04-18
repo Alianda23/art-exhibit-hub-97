@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
+import { createImageSrc } from '@/utils/imageUtils';
 
 interface Ticket {
   id: string;
@@ -38,7 +39,10 @@ const AdminTickets = () => {
   useEffect(() => {
     if (!isAdmin()) {
       navigate('/admin-login');
+      return;
     }
+    
+    console.log("Admin tickets page loaded, user is admin");
   }, [navigate]);
 
   // Fetch all tickets
@@ -47,9 +51,18 @@ const AdminTickets = () => {
     queryFn: getAllTickets,
   });
 
+  useEffect(() => {
+    console.log("Tickets data:", data);
+    if (error) {
+      console.error("Error fetching tickets:", error);
+    }
+  }, [data, error]);
+
   const handlePrintTicket = async (bookingId: string) => {
     try {
+      console.log(`Generating ticket for booking: ${bookingId}`);
       const response = await generateExhibitionTicket(bookingId);
+      console.log("Ticket generation response:", response);
       
       // Create a blob from the PDF data
       const pdfBlob = new Blob([response.pdfData], { type: 'application/pdf' });
@@ -63,6 +76,7 @@ const AdminTickets = () => {
         description: "Ticket generated successfully",
       });
     } catch (error) {
+      console.error("Error generating ticket:", error);
       toast({
         title: "Error",
         description: "Failed to generate ticket",
@@ -75,6 +89,7 @@ const AdminTickets = () => {
     try {
       return format(new Date(dateString), 'PPP p');
     } catch (error) {
+      console.error(`Error formatting date: ${dateString}`, error);
       return dateString;
     }
   };
@@ -96,7 +111,9 @@ const AdminTickets = () => {
     return (
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-6">Exhibition Tickets</h1>
-        <p>Loading tickets...</p>
+        <div className="flex justify-center items-center h-64">
+          <p className="text-lg">Loading tickets...</p>
+        </div>
       </div>
     );
   }
@@ -105,7 +122,12 @@ const AdminTickets = () => {
     return (
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-6">Exhibition Tickets</h1>
-        <p className="text-red-500">Error loading tickets</p>
+        <div className="flex justify-center items-center h-64">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <p className="font-bold">Error loading tickets</p>
+            <p>{(error as Error).message || "Unknown error occurred"}</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -121,7 +143,7 @@ const AdminTickets = () => {
           <h2 className="text-xl font-semibold mb-4">All Tickets ({tickets.length})</h2>
           
           {tickets.length === 0 ? (
-            <p className="text-gray-500">No tickets to display</p>
+            <p className="text-gray-500 p-4 text-center">No tickets to display</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
