@@ -8,9 +8,8 @@ export const getValidImageUrl = (url: string | undefined): string => {
   // Default fallback for empty or undefined URLs
   if (!url) return "/placeholder.svg";
   
-  // If it's already a complete URL or a valid static path, use it as is
-  if (url.startsWith('http') || url.startsWith('https') || 
-      url.startsWith('/static/uploads/')) {
+  // If it's already a complete URL (http/https), use it as is
+  if (url.startsWith('http') || url.startsWith('https')) {
     return url;
   }
   
@@ -20,12 +19,31 @@ export const getValidImageUrl = (url: string | undefined): string => {
     return fixed;
   }
   
+  // Handle static/uploads paths correctly
+  if (url.startsWith('/static/uploads/')) {
+    // For development environment, prepend with server URL
+    // In development, the server typically runs on port 8000
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return `http://${window.location.hostname}:8000${url}`;
+    }
+    return url;
+  }
+  
   // For server-side image paths that need to be properly formatted
   if (url.startsWith('/')) {
     // If it's a path starting with /, make sure it has the static/uploads prefix
     if (!url.startsWith('/static/uploads/')) {
       const newUrl = `/static/uploads${url}`;
+      // For development environment, prepend with server URL
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return `http://${window.location.hostname}:8000${newUrl}`;
+      }
       return newUrl;
+    }
+    
+    // For development environment, prepend with server URL
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return `http://${window.location.hostname}:8000${url}`;
     }
     return url;
   }
@@ -33,10 +51,19 @@ export const getValidImageUrl = (url: string | undefined): string => {
   // For simple filenames without path, add the full path
   if (!url.includes('/')) {
     const newUrl = `/static/uploads/${url}`;
+    // For development environment, prepend with server URL
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return `http://${window.location.hostname}:8000${newUrl}`;
+    }
     return newUrl;
   }
   
   // For other cases, assume it's a valid relative path
+  // For development environment, prepend with server URL if it starts with /static
+  if (url.startsWith('/static/') && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return `http://${window.location.hostname}:8000${url}`;
+  }
+  
   return url;
 };
 
