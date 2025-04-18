@@ -424,7 +424,14 @@ export const submitContactMessage = async (messageData: ContactMessage) => {
 // Get all contact messages (admin only)
 export const getAllContactMessages = async () => {
   console.log("Fetching all contact messages with auth token");
-  return await authFetch('/messages');
+  try {
+    const result = await authFetch('/messages');
+    console.log("Contact messages result:", result);
+    return result;
+  } catch (error) {
+    console.error("Error fetching contact messages:", error);
+    throw error;
+  }
 };
 
 // Update message status (admin only)

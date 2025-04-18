@@ -22,14 +22,19 @@ def json_dumps(obj):
 def is_admin(auth_header):
     """Verify if the request is from an admin"""
     if not auth_header or not auth_header.startswith('Bearer '):
+        print("Invalid auth header format or missing")
         return False
     
     token = auth_header.split(' ')[1]
     
     try:
+        print(f"Decoding token: {token[:20]}... (truncated)")
         payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-        return payload.get('is_admin', False)
-    except jwt.PyJWTError:
+        is_admin_user = payload.get('is_admin', False)
+        print(f"Is admin from token payload: {is_admin_user}")
+        return is_admin_user
+    except jwt.PyJWTError as e:
+        print(f"JWT decode error: {str(e)}")
         return False
 
 def create_contact_message(data):
@@ -62,10 +67,15 @@ def create_contact_message(data):
 
 def get_messages(auth_header):
     """Get all contact messages (admin only)"""
-    if not is_admin(auth_header):
+    print(f"Checking admin status with auth header: {auth_header[:20]}... (truncated)")
+    admin_status = is_admin(auth_header)
+    print(f"Admin status: {admin_status}")
+    
+    if not admin_status:
+        print("Unauthorized: Not an admin user")
         return {"error": "Unauthorized access"}
     
-    print("Fetching all contact messages")
+    print("Admin authorized, fetching all contact messages")
     result = get_all_contact_messages()
     
     # Print result for debugging

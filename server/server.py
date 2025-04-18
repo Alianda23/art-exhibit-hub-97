@@ -156,25 +156,23 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         
         # Handle GET /messages (admin only)
         elif path == '/messages':
-            token = extract_auth_token(self)
-            if not token:
-                self._set_response(401)
-                self.wfile.write(json_dumps({"error": "Authentication required"}).encode())
+            print("Processing GET /messages request")
+            auth_header = self.headers.get('Authorization', '')
+            print(f"Authorization header: {auth_header[:20]}... (truncated)")
+            
+            # Get messages
+            response = get_messages(auth_header)
+            print(f"Get messages response: {response}")
+            
+            if "error" in response:
+                error_message = response["error"]
+                if "Unauthorized" in error_message:
+                    self._set_response(401)
+                else:
+                    self._set_response(400)
+                self.wfile.write(json_dumps({"error": error_message}).encode())
                 return
             
-            payload = verify_token(token)
-            if isinstance(payload, dict) and "error" in payload:
-                self._set_response(401)
-                self.wfile.write(json_dumps({"error": payload["error"]}).encode())
-                return
-            
-            # Check if user is admin
-            if not payload.get("is_admin", False):
-                self._set_response(403)
-                self.wfile.write(json_dumps({"error": "Unauthorized access: Admin privileges required"}).encode())
-                return
-            
-            response = get_messages(self.headers.get('Authorization', ''))
             self._set_response()
             self.wfile.write(json_dumps(response).encode())
             return
