@@ -30,49 +30,25 @@ export const getValidImageUrl = (url: string | undefined): string => {
     return fixed;
   }
   
-  // Handle static/uploads paths correctly
-  if (url.startsWith('/static/uploads/')) {
-    // For development environment, prepend with server URL
-    // In development, the server typically runs on port 8000
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return `http://${window.location.hostname}:8000${url}`;
+  // For development environment, construct the full URL to the server
+  // This is the key fix - always add the server URL in development mode
+  if (window.location.hostname === 'localhost' || window.location.hostname.includes('lovableproject.com')) {
+    // Ensure the path starts with /static correctly
+    let serverPath = url;
+    if (!url.startsWith('/')) {
+      serverPath = '/' + url;
     }
-    return url;
-  }
-  
-  // For server-side image paths that need to be properly formatted
-  if (url.startsWith('/')) {
-    // If it's a path starting with /, make sure it has the static/uploads prefix
-    if (!url.startsWith('/static/uploads/')) {
-      const newUrl = `/static/uploads${url}`;
-      // For development environment, prepend with server URL
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return `http://${window.location.hostname}:8000${newUrl}`;
-      }
-      return newUrl;
+    if (!url.startsWith('/static/')) {
+      serverPath = '/static/uploads/' + url.replace(/^\/+/, '');
     }
     
-    // For development environment, prepend with server URL
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return `http://${window.location.hostname}:8000${url}`;
-    }
-    return url;
+    // Always use the development server URL in development mode
+    return `http://localhost:8000${serverPath}`;
   }
   
-  // For simple filenames without path, add the full path
-  if (!url.includes('/')) {
-    const newUrl = `/static/uploads/${url}`;
-    // For development environment, prepend with server URL
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return `http://${window.location.hostname}:8000${newUrl}`;
-    }
-    return newUrl;
-  }
-  
-  // For other cases, assume it's a valid relative path
-  // For development environment, prepend with server URL if it starts with /static
-  if (url.startsWith('/static/') && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return `http://${window.location.hostname}:8000${url}`;
+  // For all other cases, just ensure it has the proper static prefix
+  if (!url.startsWith('/static/')) {
+    return `/static/uploads/${url.replace(/^\/+/, '')}`;
   }
   
   return url;
