@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
-import { createImageSrc, handleImageError } from '@/utils/imageUtils';
+import { createImageSrc } from '@/utils/imageUtils';
 
 interface Ticket {
   id: string;
@@ -34,6 +35,7 @@ const AdminTickets = () => {
   const { toast } = useToast();
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
+  // Check if user is an admin
   useEffect(() => {
     if (!isAdmin()) {
       navigate('/admin-login');
@@ -43,6 +45,7 @@ const AdminTickets = () => {
     console.log("Admin tickets page loaded, user is admin");
   }, [navigate]);
 
+  // Fetch all tickets
   const { data, isLoading, error } = useQuery({
     queryKey: ['tickets'],
     queryFn: getAllTickets,
@@ -61,9 +64,11 @@ const AdminTickets = () => {
       const response = await generateExhibitionTicket(bookingId);
       console.log("Ticket generation response:", response);
       
+      // Create a blob from the PDF data
       const pdfBlob = new Blob([response.pdfData], { type: 'application/pdf' });
       const pdfUrl = URL.createObjectURL(pdfBlob);
       
+      // Open the PDF in a new window
       window.open(pdfUrl, '_blank');
       
       toast({
@@ -205,17 +210,6 @@ const AdminTickets = () => {
               </div>
               
               <div className="space-y-4">
-                {selectedTicket.exhibitionImageUrl && (
-                  <div className="mb-4">
-                    <img 
-                      src={createImageSrc(selectedTicket.exhibitionImageUrl)} 
-                      alt={selectedTicket.exhibitionTitle} 
-                      className="w-full h-32 object-cover rounded-md"
-                      onError={handleImageError}
-                    />
-                  </div>
-                )}
-                
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <p className="text-sm text-gray-500">User:</p>

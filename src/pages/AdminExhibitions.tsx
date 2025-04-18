@@ -1,7 +1,7 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAllExhibitions, createExhibition, updateExhibition, deleteExhibition, ExhibitionData } from '@/services/api';
-import { createImageSrc, handleImageError } from '@/utils/imageUtils';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -37,11 +37,13 @@ const AdminExhibitions = () => {
   const [selectedExhibition, setSelectedExhibition] = useState<ExhibitionData | null>(null);
   const [exhibitionToDelete, setExhibitionToDelete] = useState<ExhibitionData | null>(null);
   
+  // Fetch all exhibitions
   const { data, isLoading, error } = useQuery({
     queryKey: ['exhibitions'],
     queryFn: getAllExhibitions,
   });
 
+  // Create exhibition mutation
   const createExhibitionMutation = useMutation({
     mutationFn: createExhibition,
     onSuccess: () => {
@@ -63,6 +65,7 @@ const AdminExhibitions = () => {
     }
   });
 
+  // Update exhibition mutation
   const updateExhibitionMutation = useMutation({
     mutationFn: ({ id, data }: { id: string, data: ExhibitionData }) => 
       updateExhibition(id, data),
@@ -85,6 +88,7 @@ const AdminExhibitions = () => {
     }
   });
 
+  // Delete exhibition mutation
   const deleteExhibitionMutation = useMutation({
     mutationFn: (id: string) => deleteExhibition(id),
     onSuccess: () => {
@@ -148,7 +152,23 @@ const AdminExhibitions = () => {
     }
   };
 
-  const getValidImageUrl = createImageSrc;
+  // Function to fix image URL issues
+  const getValidImageUrl = (url: string) => {
+    if (!url) return '/placeholder.svg';
+    
+    // Handle relative paths
+    if (url.startsWith('/static/')) {
+      // Ensure server-side paths are properly prefixed
+      return url;
+    }
+    
+    // Check if URL is too long (likely invalid)
+    if (url.length > 500) {
+      return '/placeholder.svg';
+    }
+    
+    return url;
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -218,10 +238,13 @@ const AdminExhibitions = () => {
                   <TableRow key={exhibition.id}>
                     <TableCell>
                       <img 
-                        src={createImageSrc(exhibition.imageUrl)} 
+                        src={getValidImageUrl(exhibition.imageUrl)} 
                         alt={exhibition.title} 
                         className="w-16 h-16 object-cover rounded"
-                        onError={handleImageError}
+                        onError={(e) => {
+                          console.error("Exhibition image failed to load:", exhibition.imageUrl);
+                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                        }}
                       />
                     </TableCell>
                     <TableCell className="font-medium">{exhibition.title}</TableCell>
@@ -261,6 +284,7 @@ const AdminExhibitions = () => {
         </div>
       </Card>
 
+      {/* Exhibition Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -276,6 +300,7 @@ const AdminExhibitions = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

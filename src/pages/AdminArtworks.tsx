@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Mock data to use when backend is unavailable
 const mockArtworks: ArtworkData[] = [
   {
     id: "1",
@@ -76,11 +77,13 @@ const AdminArtworks = () => {
   const [artworkToDelete, setArtworkToDelete] = useState<ArtworkData | null>(null);
   const [offlineMode, setOfflineMode] = useState(false);
   
+  // Fetch all artworks - using valid options for this version of react-query
   const { data, isLoading, error } = useQuery({
     queryKey: ['artworks'],
     queryFn: getAllArtworks
   });
 
+  // Handle success/error effects separately
   useEffect(() => {
     if (data) {
       console.log("Successfully fetched artworks:", data);
@@ -99,6 +102,7 @@ const AdminArtworks = () => {
     }
   }, [error, toast]);
 
+  // Create artwork mutation
   const createArtworkMutation = useMutation({
     mutationFn: createArtwork,
     onSuccess: () => {
@@ -120,6 +124,7 @@ const AdminArtworks = () => {
     }
   });
 
+  // Update artwork mutation
   const updateArtworkMutation = useMutation({
     mutationFn: ({ id, data }: { id: string, data: ArtworkData }) => 
       updateArtwork(id, data),
@@ -142,6 +147,7 @@ const AdminArtworks = () => {
     }
   });
 
+  // Delete artwork mutation
   const deleteArtworkMutation = useMutation({
     mutationFn: (id: string) => deleteArtwork(id),
     onSuccess: () => {
@@ -163,17 +169,18 @@ const AdminArtworks = () => {
       setIsAlertDialogOpen(false);
     }
   });
-
+  
+  // Handler functions
   const handleAddArtwork = () => {
     setSelectedArtwork(null);
     setIsDialogOpen(true);
   };
-
+  
   const handleEditArtwork = (artwork: ArtworkData) => {
     setSelectedArtwork(artwork);
     setIsDialogOpen(true);
   };
-
+  
   const handleDeleteArtwork = (artwork: ArtworkData) => {
     setArtworkToDelete(artwork);
     setIsAlertDialogOpen(true);
@@ -204,9 +211,11 @@ const AdminArtworks = () => {
     }).format(price);
   };
 
+  // Log the artworks data to help with debugging
   useEffect(() => {
     if (data) {
       console.log("Artworks data received:", data);
+      // Check image URLs
       data.forEach((artwork: ArtworkData) => {
         const processedUrl = createImageSrc(artwork.imageUrl);
         console.log(`Artwork: ${artwork.title}, Original URL: ${artwork.imageUrl}, Processed URL: ${processedUrl}`);
@@ -214,6 +223,7 @@ const AdminArtworks = () => {
     }
   }, [data]);
 
+  // Determine which artworks to display (real or mock)
   const artworksToDisplay = offlineMode ? mockArtworks : (data || []);
 
   if (isLoading) {
@@ -311,6 +321,7 @@ const AdminArtworks = () => {
         </div>
       </Card>
 
+      {/* Artwork Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -326,6 +337,7 @@ const AdminArtworks = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
