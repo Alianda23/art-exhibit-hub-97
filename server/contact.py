@@ -1,12 +1,9 @@
-
 from database import save_contact_message, get_all_contact_messages, update_message_status
 import json
 import jwt
 import os
 from decimal import Decimal
-
-# Get the secret key from environment or use a default (in production, always use environment variables)
-SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'afriart_default_secret_key')
+from middleware import SECRET_KEY  # Import the shared SECRET_KEY instead of defining it separately
 
 # Custom JSON encoder to handle Decimal types
 class DecimalEncoder(json.JSONEncoder):

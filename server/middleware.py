@@ -1,13 +1,13 @@
-
 import jwt
 import datetime
+import os
 from functools import wraps
 from http.server import BaseHTTPRequestHandler
 from decimal import Decimal
 import json
 
-# Secret key for JWT token generation - replace with a secure random string
-SECRET_KEY = "your_secret_key_replace_this_with_a_secure_random_string"
+# Get the secret key from environment or use a default (in production, always use environment variables)
+SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'afriart_default_secret_key')
 
 # Custom JSON encoder to handle Decimal types
 class DecimalEncoder(json.JSONEncoder):
@@ -114,4 +114,3 @@ def admin_required(handler_method):
 def json_dumps(data):
     """Safely convert data to JSON string, handling Decimal types"""
     return json.dumps(data, cls=DecimalEncoder)
-

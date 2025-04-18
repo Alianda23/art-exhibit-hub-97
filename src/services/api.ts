@@ -265,6 +265,11 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
     // Handle different status codes
     if (response.status === 401) {
       // Token expired or invalid
+      // Add detailed logging for admin authentication issues
+      console.error('401 Unauthorized error - Token invalid or expired', data);
+      if (isAdmin()) {
+        console.error('Admin authentication failed - consider logging in again');
+      }
       logout();
       throw new Error('Session expired. Please login again.');
     }
@@ -425,6 +430,12 @@ export const submitContactMessage = async (messageData: ContactMessage) => {
 export const getAllContactMessages = async () => {
   console.log("Fetching all contact messages with auth token");
   try {
+    // Check if user is admin before making request
+    if (!isAdmin()) {
+      console.error("User is not an admin, cannot fetch messages");
+      throw new Error("Unauthorized: Admin access required");
+    }
+    
     const result = await authFetch('/messages');
     console.log("Contact messages result:", result);
     return result;
