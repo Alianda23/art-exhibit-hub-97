@@ -1,4 +1,3 @@
-
 from database import get_db_connection
 from decimal import Decimal
 import random
@@ -11,7 +10,10 @@ def generate_ticket_code():
     return f"{prefix}-{random_chars}"
 
 def create_order(user_id, order_type, reference_id, amount):
-    """Create a new order in the database"""
+    """Create a new order in the database - only for artwork purchases"""
+    if order_type != 'artwork':
+        return {"error": "Invalid order type. Only artwork orders are allowed."}
+    
     connection = get_db_connection()
     if connection is None:
         return {"error": "Database connection failed"}
@@ -28,7 +30,7 @@ def create_order(user_id, order_type, reference_id, amount):
             CREATE TABLE IF NOT EXISTS orders (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
-                type ENUM('artwork', 'exhibition') NOT NULL,
+                type ENUM('artwork') NOT NULL,
                 reference_id INT NOT NULL,
                 amount DECIMAL(10, 2) NOT NULL,
                 status ENUM('pending', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
