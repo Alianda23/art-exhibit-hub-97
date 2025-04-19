@@ -1,20 +1,26 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, Home } from 'lucide-react';
+import { CheckCircle, Home, Clock } from 'lucide-react';
+import { formatDate } from '@/utils/formatters';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
+  const { currentUser } = useAuth();
   
   // Get order details from URL params
-  const orderType = searchParams.get('type');
+  const orderType = searchParams.get('type') || 'artwork';
   const orderId = searchParams.get('id');
   const title = searchParams.get('title');
+  
+  // Format the current date for display
+  const currentDate = formatDate(new Date().toISOString());
   
   useEffect(() => {
     // Clear the pending order from localStorage
@@ -27,10 +33,10 @@ const PaymentSuccess = () => {
       variant: "default",
     });
     
-    // Redirect to profile page after 3 seconds
+    // Redirect to profile page after 5 seconds
     const timer = setTimeout(() => {
       navigate('/profile');
-    }, 3000);
+    }, 5000);
     
     return () => clearTimeout(timer);
   }, [orderType, navigate, toast]);
@@ -54,6 +60,33 @@ const PaymentSuccess = () => {
                   ? `Thank you for purchasing "${title}". You will be redirected to your profile page shortly.` 
                   : `Your booking for "${title}" has been confirmed. You will be redirected to your profile page shortly.`}
               </p>
+              
+              <div className="bg-gray-50 rounded-lg p-4 w-full mb-6">
+                <div className="text-left space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Order ID:</span>
+                    <span className="font-medium">{orderId}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Customer:</span>
+                    <span className="font-medium">{currentUser?.name || 'Valued Customer'}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Date:</span>
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-1 text-gray-400" />
+                      <span>{currentDate}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Type:</span>
+                    <span className="capitalize">{orderType}</span>
+                  </div>
+                </div>
+              </div>
               
               <Button 
                 onClick={() => navigate('/profile')} 

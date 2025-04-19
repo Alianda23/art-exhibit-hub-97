@@ -10,9 +10,8 @@ def generate_ticket_code():
     return f"{prefix}-{random_chars}"
 
 def create_order(user_id, order_type, reference_id, amount):
-    """Create a new order in the database - only for artwork purchases"""
-    if order_type != 'artwork':
-        return {"error": "Invalid order type. Only artwork orders are allowed."}
+    """Create a new order in the database"""
+    # Remove the restriction on order_type since we want to allow both artwork and exhibition
     
     connection = get_db_connection()
     if connection is None:
@@ -30,7 +29,7 @@ def create_order(user_id, order_type, reference_id, amount):
             CREATE TABLE IF NOT EXISTS orders (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
-                type ENUM('artwork') NOT NULL,
+                type ENUM('artwork', 'exhibition') NOT NULL,
                 reference_id INT NOT NULL,
                 amount DECIMAL(10, 2) NOT NULL,
                 status ENUM('pending', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
