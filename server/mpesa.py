@@ -1,3 +1,4 @@
+
 import requests
 import base64
 import json
@@ -340,64 +341,44 @@ def handle_mpesa_callback(callback_data):
         if not checkout_request_id:
             return {"error": "Missing CheckoutRequestID"}
         
-        connection = get_db_connection()
-        if not connection:
-            return {"error": "Database connection failed"}
+        if result_code == "0":
+            # Payment successful
+            status = "completed"
+        else:
+            # Payment failed
+            status = "failed"
         
-        cursor = connection.cursor()
+        # Update transaction status
+        success = update_transaction_status(checkout_request_id, status, result_code, result_desc)
         
-        try:
-            # Get order details from orders table
-            query = """
-            SELECT id, user_id, order_type, item_id, amount 
-            FROM orders 
-            WHERE checkout_request_id = %s
-            """
-            cursor.execute(query, (checkout_request_id,))
-            order = cursor.fetchone()
+        if success:
+            # Get transaction details
+            connection = get_db_connection()
+            if not connection:
+                return {"error": "Database connection failed"}
             
-            if not order:
-                return {"error": "Order not found"}
+            cursor = connection.cursor()
             
-            order_id, user_id, order_type, item_id, amount = order
-            
-            # Update order status based on M-Pesa response
-            status = "completed" if result_code == "0" else "failed"
-            
-            update_query = """
-            UPDATE orders 
-            SET status = %s
-            WHERE checkout_request_id = %s
-            """
-            cursor.execute(update_query, (status, checkout_request_id))
-            
-            # If payment successful and it's an exhibition booking, create ticket
-            if status == "completed" and order_type == "exhibition":
-                # Get slots from exhibition_bookings
-                cursor.execute("""
-                    SELECT slots FROM exhibition_bookings 
-                    WHERE id = %s
-                """, (item_id,))
-                booking = cursor.fetchone()
+            try:
+                query = """
+                SELECT order_type, order_id FROM mpesa_transactions 
+                WHERE checkout_request_id = %s
+                """
+                cursor.execute(query, (checkout_request_id,))
+                row = cursor.fetchone()
                 
-                if booking:
-                    slots = booking[0]
-                    create_ticket(order_id, user_id, item_id, slots)
+                if row:
+                    order_type = row[0]
+                    order_id = row[1]
                     
-                    # Update exhibition available slots
-                    cursor.execute("""
-                        UPDATE exhibitions 
-                        SET available_slots = available_slots - %s 
-                        WHERE id = %s
-                    """, (slots, item_id))
-            
-            connection.commit()
-            return {"success": True, "status": status}
-            
-        finally:
-            cursor.close()
-            connection.close()
-            
+                    # Update order status
+                    update_order_status(order_type, order_id, status)
+            finally:
+                if connection.is_connected():
+                    cursor.close()
+                    connection.close()
+        
+        return {"success": True}
     except Exception as e:
         print(f"Error handling M-Pesa callback: {e}")
         return {"error": str(e)}
@@ -408,34 +389,14 @@ def handle_stk_push_request(request_data):
         phone_number = request_data.get("phoneNumber")
         amount = request_data.get("amount")
         order_type = request_data.get("orderType")
-        item_id = request_data.get("orderId")
+        order_id = request_data.get("orderId")
         user_id = request_data.get("userId")
         account_reference = request_data.get("accountReference")
         
-        if not all([phone_number, amount, order_type, item_id, user_id, account_reference]):
+        if not all([phone_number, amount, order_type, order_id, user_id, account_reference]):
             return {"error": "Missing required fields"}
         
-        # Initiate STK Push
-        stk_response = initiate_stk_push(
-            phone_number, amount, account_reference, 
-            order_type, item_id, user_id
-        )
-        
-        if "error" in stk_response:
-            return stk_response
-            
-        # Create order in database
-        create_order(
-            user_id=user_id,
-            order_type=order_type,
-            item_id=item_id,
-            amount=amount,
-            checkout_request_id=stk_response.get("checkoutRequestId"),
-            merchant_request_id=stk_response.get("merchantRequestId")
-        )
-        
-        return stk_response
-        
+        return initiate_stk_push(phone_number, amount, account_reference, order_type, order_id, user_id)
     except Exception as e:
         print(f"Error handling STK Push request: {e}")
         return {"error": str(e)}

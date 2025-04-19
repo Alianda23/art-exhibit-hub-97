@@ -1,3 +1,4 @@
+
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,35 +47,6 @@ CREATE TABLE IF NOT EXISTS exhibitions (
     available_slots INTEGER NOT NULL,
     status TEXT NOT NULL DEFAULT 'upcoming',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Orders table (for both artworks and exhibitions)
-CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    order_type VARCHAR(20) NOT NULL,  -- 'artwork' or 'exhibition'
-    item_id INTEGER NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed'
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    checkout_request_id VARCHAR(100),
-    merchant_request_id VARCHAR(100),
-    FOREIGN KEY (user_id) REFERENCES users (id)
-);
-
--- Tickets table (for exhibitions)
-CREATE TABLE IF NOT EXISTS tickets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    exhibition_id INTEGER NOT NULL,
-    ticket_code VARCHAR(50) NOT NULL,
-    status VARCHAR(20) DEFAULT 'active', -- 'active', 'used', 'cancelled'
-    slots INTEGER NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (order_id) REFERENCES orders (id),
-    FOREIGN KEY (user_id) REFERENCES users (id),
-    FOREIGN KEY (exhibition_id) REFERENCES exhibitions (id)
 );
 
 -- Contact messages table
