@@ -19,6 +19,28 @@ def create_order(user_id, order_type, reference_id, amount):
     cursor = connection.cursor()
     
     try:
+        # Check if orders table exists
+        cursor.execute("SHOW TABLES LIKE 'orders'")
+        if not cursor.fetchone():
+            print("Orders table does not exist. Creating it now...")
+            # Create orders table if it doesn't exist
+            orders_table = """
+            CREATE TABLE IF NOT EXISTS orders (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                type ENUM('artwork', 'exhibition') NOT NULL,
+                reference_id INT NOT NULL,
+                amount DECIMAL(10, 2) NOT NULL,
+                status ENUM('pending', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
+                payment_method VARCHAR(50),
+                payment_status ENUM('pending', 'completed', 'failed') NOT NULL DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+            """
+            cursor.execute(orders_table)
+            connection.commit()
+        
         query = """
         INSERT INTO orders (user_id, type, reference_id, amount)
         VALUES (%s, %s, %s, %s)
@@ -45,6 +67,27 @@ def create_ticket(user_id, exhibition_id, slots):
     cursor = connection.cursor()
     
     try:
+        # Check if tickets table exists
+        cursor.execute("SHOW TABLES LIKE 'tickets'")
+        if not cursor.fetchone():
+            print("Tickets table does not exist. Creating it now...")
+            # Create tickets table if it doesn't exist
+            tickets_table = """
+            CREATE TABLE IF NOT EXISTS tickets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                exhibition_id INT NOT NULL,
+                ticket_code VARCHAR(50) NOT NULL UNIQUE,
+                slots INT NOT NULL,
+                status ENUM('active', 'used', 'cancelled') NOT NULL DEFAULT 'active',
+                booking_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (exhibition_id) REFERENCES exhibitions(id)
+            );
+            """
+            cursor.execute(tickets_table)
+            connection.commit()
+        
         ticket_code = generate_ticket_code()
         query = """
         INSERT INTO tickets (user_id, exhibition_id, ticket_code, slots)
@@ -72,6 +115,12 @@ def get_all_orders():
     cursor = connection.cursor()
     
     try:
+        # Check if table exists before querying
+        cursor.execute("SHOW TABLES LIKE 'orders'")
+        if not cursor.fetchone():
+            print("Orders table doesn't exist")
+            return {"orders": []}
+        
         query = """
         SELECT o.*, u.name as user_name,
                CASE 
@@ -104,6 +153,12 @@ def get_all_tickets():
     cursor = connection.cursor()
     
     try:
+        # Check if table exists before querying
+        cursor.execute("SHOW TABLES LIKE 'tickets'")
+        if not cursor.fetchone():
+            print("Tickets table doesn't exist")
+            return {"tickets": []}
+        
         query = """
         SELECT t.*, u.name as user_name, e.title as exhibition_title
         FROM tickets t

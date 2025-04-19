@@ -88,6 +88,37 @@ def initialize_database():
     );
     """
     
+    # Create orders table - Updated to match schema.sql
+    orders_table = """
+    CREATE TABLE IF NOT EXISTS orders (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        type ENUM('artwork', 'exhibition') NOT NULL,
+        reference_id INT NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        status ENUM('pending', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
+        payment_method VARCHAR(50),
+        payment_status ENUM('pending', 'completed', 'failed') NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    """
+    
+    # Create tickets table - Updated to match schema.sql
+    tickets_table = """
+    CREATE TABLE IF NOT EXISTS tickets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        exhibition_id INT NOT NULL,
+        ticket_code VARCHAR(50) NOT NULL UNIQUE,
+        slots INT NOT NULL,
+        status ENUM('active', 'used', 'cancelled') NOT NULL DEFAULT 'active',
+        booking_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (exhibition_id) REFERENCES exhibitions(id)
+    );
+    """
+    
     # Create artwork orders table
     artwork_orders_table = """
     CREATE TABLE IF NOT EXISTS artwork_orders (
@@ -166,6 +197,9 @@ def initialize_database():
         cursor.execute(admins_table)
         cursor.execute(artworks_table)
         cursor.execute(exhibitions_table)
+        # Explicitly create orders and tickets tables before other tables that may depend on them
+        cursor.execute(orders_table)
+        cursor.execute(tickets_table)
         cursor.execute(artwork_orders_table)
         cursor.execute(exhibition_bookings_table)
         cursor.execute(contact_messages_table)

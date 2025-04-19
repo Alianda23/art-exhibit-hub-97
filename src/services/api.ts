@@ -1,3 +1,4 @@
+
 // API service to connect to the Python backend
 
 // Base URL for the API
@@ -467,6 +468,11 @@ export const bookExhibition = async (bookingData: any) => {
 // Get all tickets (admin only)
 export const getAllTickets = async () => {
   return await authFetch('/tickets');
+};
+
+// Get all orders (admin only)
+export const getAllOrders = async () => {
+  return await authFetch('/orders');
 };
 
 // Generate exhibition ticket
