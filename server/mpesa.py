@@ -1,4 +1,3 @@
-
 import requests
 import base64
 import json
@@ -389,14 +388,53 @@ def handle_stk_push_request(request_data):
         phone_number = request_data.get("phoneNumber")
         amount = request_data.get("amount")
         order_type = request_data.get("orderType")
-        order_id = request_data.get("orderId")
+        reference_id = request_data.get("referenceId")
         user_id = request_data.get("userId")
-        account_reference = request_data.get("accountReference")
+        slots = request_data.get("slots", 1)  # For exhibition tickets
         
-        if not all([phone_number, amount, order_type, order_id, user_id, account_reference]):
+        if not all([phone_number, amount, order_type, reference_id, user_id]):
             return {"error": "Missing required fields"}
         
-        return initiate_stk_push(phone_number, amount, account_reference, order_type, order_id, user_id)
+        # Initialize STK Push
+        stk_result = initiate_stk_push(phone_number, amount, f"{order_type}-{reference_id}", order_type, reference_id, user_id)
+        
+        if "error" in stk_result:
+            return stk_result
+        
+        # For development, create order and ticket immediately after STK push initiation
+        # In production, this should be done after confirming payment
+        if order_type == "exhibition":
+            # Create ticket
+            from db_operations import create_ticket, create_order
+            ticket_result = create_ticket(user_id, reference_id, slots)
+            if "error" in ticket_result:
+                return ticket_result
+            
+            # Create order for the ticket
+            order_result = create_order(user_id, "exhibition", reference_id, amount)
+            if "error" in order_result:
+                return order_result
+            
+            return {
+                "success": True,
+                "message": "Exhibition ticket created successfully",
+                "ticket": ticket_result,
+                "order": order_result,
+                "stk": stk_result
+            }
+        else:
+            # Create order for artwork
+            from db_operations import create_order
+            order_result = create_order(user_id, "artwork", reference_id, amount)
+            if "error" in order_result:
+                return order_result
+            
+            return {
+                "success": True,
+                "message": "Artwork order created successfully",
+                "order": order_result,
+                "stk": stk_result
+            }
     except Exception as e:
         print(f"Error handling STK Push request: {e}")
         return {"error": str(e)}

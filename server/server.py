@@ -17,6 +17,7 @@ from contact import create_contact_message, get_messages, update_message, json_d
 from db_setup import initialize_database
 from middleware import auth_required, admin_required, extract_auth_token, verify_token
 from mpesa import handle_stk_push_request, check_transaction_status, handle_mpesa_callback
+from db_operations import get_all_tickets, get_all_orders
 
 # Define the port
 PORT = 8000
@@ -257,17 +258,48 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         elif path == '/tickets':
             print("Processing GET /tickets request")
             auth_header = self.headers.get('Authorization', '')
-            print(f"Authorization header: {auth_header[:20]}... (truncated)")
             
-            # Get tickets
-            response = get_all_tickets(auth_header)
-            print(f"Get tickets response: {response}")
-            
-            if "error" in response:
+            # Verify admin access
+            token = extract_auth_token(auth_header)
+            if not token:
                 self._set_response(401)
-                self.wfile.write(json_dumps({"error": response["error"]}).encode())
+                self.wfile.write(json_dumps({"error": "Authentication required"}).encode())
                 return
             
+            payload = verify_token(token)
+            if not payload.get("is_admin", False):
+                self._set_response(403)
+                self.wfile.write(json_dumps({"error": "Admin access required"}).encode())
+                return
+            
+            # Get tickets from database
+            from db_operations import get_all_tickets
+            response = get_all_tickets()
+            self._set_response()
+            self.wfile.write(json_dumps(response).encode())
+            return
+        
+        # Handle GET /orders (admin only)
+        elif path == '/orders':
+            print("Processing GET /orders request")
+            auth_header = self.headers.get('Authorization', '')
+            
+            # Verify admin access
+            token = extract_auth_token(auth_header)
+            if not token:
+                self._set_response(401)
+                self.wfile.write(json_dumps({"error": "Authentication required"}).encode())
+                return
+            
+            payload = verify_token(token)
+            if not payload.get("is_admin", False):
+                self._set_response(403)
+                self.wfile.write(json_dumps({"error": "Admin access required"}).encode())
+                return
+            
+            # Get orders from database
+            from db_operations import get_all_orders
+            response = get_all_orders()
             self._set_response()
             self.wfile.write(json_dumps(response).encode())
             return
