@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
-import { createImageSrc } from '@/utils/imageUtils';
+import { createImageSrc, handleImageError, preloadImage } from '@/utils/imageUtils';
 
 interface Ticket {
   id: string;
@@ -49,10 +50,20 @@ const AdminTickets = () => {
     queryFn: getAllTickets,
   });
 
+  // Log tickets data and preload images when data is available
   useEffect(() => {
     console.log("Tickets data:", data);
     if (error) {
       console.error("Error fetching tickets:", error);
+    }
+    
+    // Preload all ticket images when data is available
+    if (data?.tickets) {
+      data.tickets.forEach((ticket: Ticket) => {
+        if (ticket.exhibitionImageUrl) {
+          preloadImage(ticket.exhibitionImageUrl);
+        }
+      });
     }
   }, [data, error]);
 
