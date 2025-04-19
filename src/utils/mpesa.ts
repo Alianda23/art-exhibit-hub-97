@@ -1,3 +1,4 @@
+
 // M-Pesa API utilities
 
 // M-Pesa credentials
@@ -41,7 +42,7 @@ export const initiateSTKPush = async (
       phoneNumber: validatedPhone,
       amount,
       orderType,
-      orderId,
+      orderId, // Changed from referenceId to orderId to match backend expectation
       userId,
       accountReference,
       callbackUrl: CALLBACK_URL

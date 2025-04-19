@@ -388,15 +388,36 @@ def handle_stk_push_request(request_data):
         phone_number = request_data.get("phoneNumber")
         amount = request_data.get("amount")
         order_type = request_data.get("orderType")
-        reference_id = request_data.get("referenceId")
+        order_id = request_data.get("orderId")  # Changed from referenceId to orderId
         user_id = request_data.get("userId")
+        account_reference = request_data.get("accountReference")
+        callback_url = request_data.get("callbackUrl", CALLBACK_URL)
         slots = request_data.get("slots", 1)  # For exhibition tickets
         
-        if not all([phone_number, amount, order_type, reference_id, user_id]):
-            return {"error": "Missing required fields"}
+        # Log all received fields for debugging
+        print(f"STK Push request received: {request_data}")
+        
+        if not all([phone_number, amount, order_type, order_id, user_id]):
+            missing_fields = []
+            if not phone_number: missing_fields.append("phoneNumber")
+            if not amount: missing_fields.append("amount")
+            if not order_type: missing_fields.append("orderType")
+            if not order_id: missing_fields.append("orderId")
+            if not user_id: missing_fields.append("userId")
+            
+            error_msg = f"Missing required fields: {', '.join(missing_fields)}"
+            print(error_msg)
+            return {"error": error_msg}
         
         # Initialize STK Push
-        stk_result = initiate_stk_push(phone_number, amount, f"{order_type}-{reference_id}", order_type, reference_id, user_id)
+        stk_result = initiate_stk_push(
+            phone_number, 
+            amount, 
+            account_reference or f"{order_type}-{order_id}", 
+            order_type, 
+            order_id, 
+            user_id
+        )
         
         if "error" in stk_result:
             return stk_result
@@ -406,12 +427,12 @@ def handle_stk_push_request(request_data):
         if order_type == "exhibition":
             # Create ticket
             from db_operations import create_ticket, create_order
-            ticket_result = create_ticket(user_id, reference_id, slots)
+            ticket_result = create_ticket(user_id, order_id, slots)
             if "error" in ticket_result:
                 return ticket_result
             
             # Create order for the ticket
-            order_result = create_order(user_id, "exhibition", reference_id, amount)
+            order_result = create_order(user_id, "exhibition", order_id, amount)
             if "error" in order_result:
                 return order_result
             
@@ -425,7 +446,7 @@ def handle_stk_push_request(request_data):
         else:
             # Create order for artwork
             from db_operations import create_order
-            order_result = create_order(user_id, "artwork", reference_id, amount)
+            order_result = create_order(user_id, "artwork", order_id, amount)
             if "error" in order_result:
                 return order_result
             

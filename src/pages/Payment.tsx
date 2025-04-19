@@ -189,12 +189,18 @@ const Payment = () => {
         throw new Error('Order details not found');
       }
 
+      if (!currentUser || !currentUser.id) {
+        throw new Error('User information missing. Please login again.');
+      }
+
       // Generate a reference for this transaction
       const accountReference = order.type === 'artwork' 
         ? `ART-${order.itemId}` 
         : `EXH-${order.itemId}`;
 
-      // Call M-Pesa STK Push
+      console.log('Initiating payment with user ID:', currentUser.id);
+
+      // Call M-Pesa STK Push with the required fields
       const response = await initiateSTKPush(
         phoneNumber,
         order.totalAmount,
@@ -207,7 +213,7 @@ const Payment = () => {
         throw new Error(response.error);
       }
       
-      setCheckoutRequestId(response.CheckoutRequestID);
+      setCheckoutRequestId(response.CheckoutRequestID || response.checkoutRequestId);
       setStatusCheckAttempts(0);
       
       toast({
