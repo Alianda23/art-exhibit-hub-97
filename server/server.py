@@ -16,10 +16,7 @@ from exhibition import get_all_exhibitions, get_exhibition, create_exhibition, u
 from contact import create_contact_message, get_messages, update_message, json_dumps
 from db_setup import initialize_database
 from middleware import auth_required, admin_required, extract_auth_token, verify_token
-
-# Import module for file upload handling
-import tempfile
-import shutil
+from mpesa import handle_stk_push_request, check_transaction_status, handle_mpesa_callback
 
 # Define the port
 PORT = 8000
@@ -490,6 +487,50 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             else:
                 self._set_response(200)
             
+            self.wfile.write(json_dumps(response).encode())
+            return
+        
+        # New M-Pesa STK Push endpoint
+        elif path == '/mpesa/stk-push':
+            print("Processing M-Pesa STK Push request")
+            response = handle_stk_push_request(post_data)
+            
+            if "error" in response:
+                self._set_response(400)
+                self.wfile.write(json_dumps(response).encode())
+                return
+            
+            self._set_response(200)
+            self.wfile.write(json_dumps(response).encode())
+            return
+            
+        # M-Pesa callback endpoint
+        elif path == '/mpesa/callback':
+            print("Processing M-Pesa callback")
+            response = handle_mpesa_callback(post_data)
+            
+            if "error" in response:
+                self._set_response(400)
+                self.wfile.write(json_dumps(response).encode())
+                return
+            
+            self._set_response(200)
+            self.wfile.write(json_dumps(response).encode())
+            return
+            
+        # M-Pesa transaction status check endpoint
+        elif path.startswith('/mpesa/status/'):
+            checkout_request_id = path.split('/')[3]
+            print(f"Checking M-Pesa transaction status for: {checkout_request_id}")
+            
+            response = check_transaction_status(checkout_request_id)
+            
+            if "error" in response:
+                self._set_response(400)
+                self.wfile.write(json_dumps(response).encode())
+                return
+            
+            self._set_response(200)
             self.wfile.write(json_dumps(response).encode())
             return
         

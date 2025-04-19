@@ -1,4 +1,3 @@
-
 // M-Pesa API utilities
 
 // M-Pesa credentials
@@ -35,11 +34,15 @@ export const initiateSTKPush = async (
     
     console.log(`Initiating STK Push for phone: ${validatedPhone}, amount: ${amount}, order type: ${orderType}`);
     
+    // Add user ID to request body
+    const userId = localStorage.getItem('userId') || '';
+    
     const requestBody = {
       phoneNumber: validatedPhone,
       amount,
       orderType,
       orderId,
+      userId,
       accountReference,
       callbackUrl: CALLBACK_URL
     };
@@ -57,7 +60,7 @@ export const initiateSTKPush = async (
     if (!response.ok) {
       const errorData = await response.json();
       console.error('STK Push failed with server response:', errorData);
-      throw new Error(`M-Pesa API Error: ${errorData.message || 'Unknown error'}`);
+      throw new Error(`M-Pesa API Error: ${errorData.error || 'Unknown error'}`);
     }
     
     const responseData = await response.json();
@@ -84,7 +87,7 @@ export const checkTransactionStatus = async (checkoutRequestId: string): Promise
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Transaction status check failed with server response:', errorData);
-      throw new Error(`M-Pesa API Error: ${errorData.message || 'Unknown error'}`);
+      throw new Error(`M-Pesa API Error: ${errorData.error || 'Unknown error'}`);
     }
     
     const responseData = await response.json();
