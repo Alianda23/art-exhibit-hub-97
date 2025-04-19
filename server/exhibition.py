@@ -392,4 +392,68 @@ def update_exhibition(auth_header, exhibition_id, exhibition_data):
             connection.close()
 
 def delete_exhibition(auth_header, exhibition_id):
-    # ... keep existing code (delete exhibition functionality)
+    """Delete an exhibition (admin only)"""
+    print(f"\n--- Delete Exhibition Request ---")
+    print(f"Auth Header: {auth_header}")
+    print(f"Exhibition ID: {exhibition_id}")
+    
+    if not auth_header:
+        print("ERROR: Authentication header missing")
+        return {"error": "Authentication required"}
+    
+    # Extract token from header - handle both formats
+    token = None
+    if auth_header.startswith('Bearer '):
+        token = auth_header[7:]
+    else:
+        parts = auth_header.split(" ")
+        if len(parts) > 1:
+            token = parts[1]
+    
+    if not token:
+        print("ERROR: No token found in header")
+        return {"error": "Invalid authentication token"}
+    
+    # Verify token and check if user is admin
+    print(f"Verifying token: {token[:20]}...")
+    payload = verify_token(token)
+    print(f"Token verification result: {payload}")
+    
+    # Check if verification returned an error
+    if isinstance(payload, dict) and "error" in payload:
+        print(f"ERROR: Token verification failed: {payload['error']}")
+        return {"error": f"Authentication failed: {payload['error']}"}
+    
+    # Check if user is admin
+    is_admin = payload.get("is_admin", False)
+    print(f"Is admin: {is_admin}")
+    
+    if not is_admin:
+        print("ERROR: Access denied - Not an admin user")
+        return {"error": "Unauthorized access: Admin privileges required"}
+    
+    # Proceed with deletion
+    connection = get_db_connection()
+    if connection is None:
+        return {"error": "Database connection failed"}
+    
+    cursor = connection.cursor()
+    
+    try:
+        # First check if the exhibition exists
+        cursor.execute("SELECT id FROM exhibitions WHERE id = %s", (exhibition_id,))
+        if not cursor.fetchone():
+            return {"error": "Exhibition not found"}
+        
+        # Delete the exhibition
+        cursor.execute("DELETE FROM exhibitions WHERE id = %s", (exhibition_id,))
+        connection.commit()
+        
+        return {"success": True, "message": f"Exhibition with ID {exhibition_id} deleted successfully"}
+    except Exception as e:
+        print(f"Error deleting exhibition: {e}")
+        return {"error": str(e)}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
