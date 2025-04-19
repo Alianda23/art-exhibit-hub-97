@@ -1,3 +1,4 @@
+
 import jwt
 import datetime
 import os
@@ -46,9 +47,23 @@ def verify_token(token):
         print(f"Unexpected error during token verification: {str(e)}")
         return {"error": f"Token verification error: {str(e)}"}
 
-def extract_auth_token(handler: BaseHTTPRequestHandler):
-    """Extract token from Authorization header"""
-    auth_header = handler.headers.get('Authorization', '')
+def extract_auth_token(handler):
+    """Extract token from Authorization header
+    
+    This function can accept either:
+    - A BaseHTTPRequestHandler object (with headers attribute)
+    - A string that is already an Authorization header value
+    """
+    if isinstance(handler, str):
+        # Handler is already an auth header string
+        auth_header = handler
+    elif hasattr(handler, 'headers'):
+        # Handler is a request handler object
+        auth_header = handler.headers.get('Authorization', '')
+    else:
+        # Unknown type
+        print(f"Warning: extract_auth_token received unknown type: {type(handler)}")
+        return None
     
     token = None
     if auth_header.startswith('Bearer '):

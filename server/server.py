@@ -105,19 +105,26 @@ mock_tickets = [
 
 # Function to get all tickets (mock implementation)
 def get_all_tickets(auth_header):
-    # Extract and verify token
+    """Get all tickets (admin only)"""
+    print(f"Getting all tickets with auth header: {auth_header[:20]}... (truncated)")
+    
+    # Extract and verify token - directly use the token from auth_header
     token = extract_auth_token(auth_header)
     if not token:
+        print("Authentication required - no token found")
         return {"error": "Authentication required"}
     
     payload = verify_token(token)
     if isinstance(payload, dict) and "error" in payload:
+        print(f"Authentication failed: {payload['error']}")
         return {"error": payload["error"]}
     
     # Check if user is admin
     if not payload.get("is_admin", False):
+        print("Access denied - not an admin user")
         return {"error": "Unauthorized access: Admin privileges required"}
     
+    print(f"Admin user authenticated, returning {len(mock_tickets)} tickets")
     # Return tickets data
     return {"tickets": mock_tickets}
 
