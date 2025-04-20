@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -45,7 +44,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (currentUser) {
-      fetchUserOrders();
+      fetchUserOrdersAndTickets();
     }
   }, [currentUser]);
 
@@ -54,7 +53,7 @@ const Profile = () => {
     return null;
   }
 
-  const fetchUserOrders = async () => {
+  const fetchUserOrdersAndTickets = async () => {
     if (!currentUser.id) return;
     
     setLoading(true);
@@ -62,14 +61,14 @@ const Profile = () => {
       const response = await getUserOrders(currentUser.id);
       
       if (response.orders) {
-        setOrders(response.orders);
+        setOrders(response.orders.filter((order: any) => order.type === 'artwork'));
       }
       
-      if (response.bookings) {
-        setBookings(response.bookings);
+      if (response.tickets) {
+        setBookings(response.tickets);
       }
     } catch (error) {
-      console.error('Error fetching user orders:', error);
+      console.error('Error fetching user orders and tickets:', error);
       toast({
         title: "Error",
         description: "Failed to load your orders and bookings",

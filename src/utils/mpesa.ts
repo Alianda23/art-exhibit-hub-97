@@ -1,4 +1,3 @@
-
 // M-Pesa API utilities
 
 // M-Pesa credentials
@@ -105,14 +104,15 @@ export const checkTransactionStatus = async (checkoutRequestId: string): Promise
   }
 };
 
-// Function to finalize order after payment
+// Update finalizeOrder to handle both artwork orders and exhibition tickets
 export const finalizeOrder = async (
   checkoutRequestId: string,
   orderType: 'artwork' | 'exhibition',
   orderData: any
 ): Promise<any> => {
   try {
-    const response = await fetch(`${API_URL}/orders/finalize`, {
+    const endpoint = orderType === 'artwork' ? '/orders/finalize' : '/tickets/finalize';
+    const response = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -131,19 +131,35 @@ export const finalizeOrder = async (
   }
 };
 
-// Function to get user orders
+// Update getUserOrders to fetch both orders and tickets
 export const getUserOrders = async (userId: string): Promise<any> => {
   try {
-    const response = await fetch(`${API_URL}/orders/user/${userId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const [ordersResponse, ticketsResponse] = await Promise.all([
+      fetch(`${API_URL}/orders/user/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      fetch(`${API_URL}/tickets/user/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+    ]);
     
-    return await response.json();
+    const [orders, tickets] = await Promise.all([
+      ordersResponse.json(),
+      ticketsResponse.json()
+    ]);
+    
+    return {
+      orders: orders.orders || [],
+      tickets: tickets.tickets || []
+    };
   } catch (error) {
-    console.error('Get user orders error:', error);
+    console.error('Get user orders/tickets error:', error);
     throw error;
   }
 };

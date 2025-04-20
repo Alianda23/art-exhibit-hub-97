@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -47,7 +46,21 @@ const AdminTickets = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['tickets'],
-    queryFn: getAllTickets,
+    queryFn: async () => {
+      try {
+        const response = await authFetch('/tickets');
+        console.log("Tickets data:", response);
+        return response;
+      } catch (err) {
+        console.error('Error fetching tickets:', err);
+        toast({
+          title: "Error",
+          description: "Failed to load tickets. Please try again.",
+          variant: "destructive",
+        });
+        throw err;
+      }
+    },
   });
 
   // Log tickets data and preload images when data is available
