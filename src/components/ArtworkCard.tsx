@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Artwork } from '@/types';
@@ -12,9 +13,12 @@ interface ArtworkCardProps {
 }
 
 const ArtworkCard = ({ artwork }: ArtworkCardProps) => {
-  // Process the image URL before rendering
-  const imageUrl = createImageSrc(artwork.imageUrl);
-  console.log(`ArtworkCard: Loading image for ${artwork.title}: ${artwork.imageUrl} → ${imageUrl}`);
+  // Handle image_url vs imageUrl field name differences
+  const imageSource = artwork.image_url || artwork.imageUrl;
+  
+  // Process the image URL before rendering - this is crucial
+  const imageUrl = createImageSrc(imageSource);
+  console.log(`ArtworkCard: Loading image for ${artwork.title}: ${imageSource} → ${imageUrl}`);
   
   return (
     <div className="group rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300">

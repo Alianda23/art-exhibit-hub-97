@@ -27,6 +27,13 @@ const ArtworksPage = () => {
         setLoading(true);
         const data = await getAllArtworks();
         console.log("Artworks loaded successfully:", data.length);
+        
+        // Log image URLs for debugging
+        data.forEach((artwork: Artwork) => {
+          const imageSource = artwork.image_url || artwork.imageUrl;
+          console.log(`Artwork ${artwork.id} (${artwork.title}) image source: ${imageSource}`);
+        });
+        
         setArtworks(data);
       } catch (error) {
         console.error('Failed to fetch artworks:', error);

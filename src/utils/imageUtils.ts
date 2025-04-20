@@ -5,8 +5,7 @@
 
 // Collection of default exhibition images to use randomly
 const defaultExhibitionImages = [
-  "/static/uploads/default_exhibition.jpg",
-  "/placeholder.svg"
+  "/static/uploads/exhibition_20250419211948.jpg"
 ];
 
 // Process image URL to ensure it works with the server's structure
@@ -42,10 +41,17 @@ export const getValidImageUrl = (url: string | undefined): string => {
     return fixed;
   }
   
-  // Handle /static/ paths by prepending server URL - this is crucial for both artworks and exhibitions
+  // Handle /static/ paths by prepending server URL - crucial for both artworks and exhibitions
   if (url.startsWith('/static/')) {
     const serverUrl = `http://localhost:8000${url}`;
     console.log(`Server path for static URL: ${url} → ${serverUrl}`);
+    return serverUrl;
+  }
+  
+  // Special case for image_url from API which might not have the /static/ prefix
+  if (url.includes('artwork_') || url.includes('exhibition_')) {
+    const serverUrl = `http://localhost:8000/static/uploads/${url}`;
+    console.log(`Added full path to artwork/exhibition filename: ${url} → ${serverUrl}`);
     return serverUrl;
   }
   
@@ -58,8 +64,8 @@ export const getValidImageUrl = (url: string | undefined): string => {
   
   // For paths that start with / but not /static/
   if (url.startsWith('/') && !url.startsWith('/static/')) {
-    const serverUrl = `http://localhost:8000/static/uploads${url}`;
-    console.log(`Added static path prefix: ${url} → ${serverUrl}`);
+    const serverUrl = `http://localhost:8000${url}`;
+    console.log(`Added server prefix: ${url} → ${serverUrl}`);
     return serverUrl;
   }
   

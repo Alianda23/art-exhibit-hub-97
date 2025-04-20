@@ -28,6 +28,7 @@ const ArtworkDetail = () => {
       try {
         setLoading(true);
         const data = await getArtwork(id);
+        console.log("Artwork data received:", data);
         setArtwork(data);
         
         // Fetch all artworks to get related ones by the same artist
@@ -87,6 +88,11 @@ const ArtworkDetail = () => {
     );
   }
 
+  // Handle image_url vs imageUrl field name differences
+  const imageSource = artwork.image_url || artwork.imageUrl;
+  const imageUrl = createImageSrc(imageSource);
+  console.log(`ArtworkDetail: Image for ${artwork.title}: ${imageSource} → ${imageUrl}`);
+  
   const isSold = artwork.status === 'sold';
 
   return (
@@ -98,7 +104,7 @@ const ArtworkDetail = () => {
               <div className="relative">
                 <AspectRatio ratio={3/4} className="overflow-hidden rounded-lg">
                   <img 
-                    src={createImageSrc(artwork.imageUrl)} 
+                    src={imageUrl} 
                     alt={artwork.title}
                     className="w-full h-full object-cover"
                     onError={handleImageError}
