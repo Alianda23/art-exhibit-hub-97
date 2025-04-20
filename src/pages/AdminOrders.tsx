@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -42,17 +43,14 @@ const AdminOrders = () => {
     }
   }, [navigate]);
 
-  // Update query to only fetch artwork orders
+  // Fetch orders from API
   const { data, isLoading, error } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
       try {
         const response = await authFetch('/orders');
-        // Filter to only show artwork orders
-        return {
-          ...response,
-          orders: response.orders.filter((order: any) => order.type === 'artwork')
-        };
+        console.log('Orders response:', response);
+        return response;
       } catch (err) {
         console.error('Error fetching orders:', err);
         toast({
