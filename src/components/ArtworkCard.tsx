@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Artwork } from '@/types';
@@ -13,12 +12,16 @@ interface ArtworkCardProps {
 }
 
 const ArtworkCard = ({ artwork }: ArtworkCardProps) => {
+  // Process the image URL before rendering
+  const imageUrl = createImageSrc(artwork.imageUrl);
+  console.log(`ArtworkCard: Loading image for ${artwork.title}: ${artwork.imageUrl} → ${imageUrl}`);
+  
   return (
     <div className="group rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300">
       <div className="image-container relative">
         <AspectRatio ratio={3/4}>
           <img
-            src={createImageSrc(artwork.imageUrl)}
+            src={imageUrl}
             alt={artwork.title}
             className="w-full h-full object-cover"
             onError={handleImageError}

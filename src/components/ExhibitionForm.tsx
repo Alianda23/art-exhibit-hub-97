@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -15,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ExhibitionData } from "@/services/api";
-import { getRandomExhibitionImage } from "@/utils/imageUtils";
+import { getRandomExhibitionImage, createImageSrc } from "@/utils/imageUtils";
 
 const exhibitionSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters" }),
@@ -63,10 +64,13 @@ const ExhibitionForm: React.FC<ExhibitionFormProps> = ({
 
   const handleSubmit = async (values: ExhibitionFormValues) => {
     try {
-      // Use a random image for the exhibition
+      // Use a random image for the exhibition if no image is provided
+      const imageUrl = initialData?.imageUrl || getRandomExhibitionImage();
+      console.log(`Using exhibition image: ${imageUrl} -> ${createImageSrc(imageUrl)}`);
+      
       onSubmit({
         ...values,
-        imageUrl: initialData?.imageUrl || getRandomExhibitionImage(),
+        imageUrl,
         ticketPrice: values.ticketPrice
       } as ExhibitionData);
     } catch (error) {

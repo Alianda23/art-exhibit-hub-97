@@ -42,7 +42,7 @@ export const getValidImageUrl = (url: string | undefined): string => {
     return fixed;
   }
   
-  // Handle static/uploads paths correctly - always prepend server URL
+  // Handle /static/ paths by prepending server URL - this is crucial for both artworks and exhibitions
   if (url.startsWith('/static/')) {
     const serverUrl = `http://localhost:8000${url}`;
     console.log(`Server path for static URL: ${url} → ${serverUrl}`);
@@ -84,8 +84,16 @@ export const createImageSrc = (url: string | undefined, defaultImage = "/placeho
 export const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, fallbackSrc = "/placeholder.svg") => {
   const target = e.target as HTMLImageElement;
   console.error(`Image failed to load: ${target.src}`);
-  target.onerror = null; // Prevent infinite loop if fallback also fails
-  target.src = `http://localhost:8000${fallbackSrc}`;
+  
+  // Prevent infinite loop if fallback also fails
+  target.onerror = null;
+  
+  // Make sure we always use the full server URL for the fallback
+  if (!fallbackSrc.startsWith('http')) {
+    target.src = `http://localhost:8000${fallbackSrc}`;
+  } else {
+    target.src = fallbackSrc;
+  }
 };
 
 // Preload images to ensure they're in the browser cache
