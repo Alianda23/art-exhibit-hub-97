@@ -14,6 +14,7 @@ export interface Artwork {
   description: string;
   price: number;
   imageUrl: string;
+  image_url?: string; // Add optional image_url property for API compatibility
   dimensions?: string;
   medium?: string;
   year?: number;
