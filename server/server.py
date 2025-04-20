@@ -17,7 +17,7 @@ from contact import create_contact_message, get_messages, update_message, json_d
 from db_setup import initialize_database
 from middleware import auth_required, admin_required, extract_auth_token, verify_token
 from mpesa import handle_stk_push_request, check_transaction_status, handle_mpesa_callback
-from db_operations import get_all_tickets, get_all_orders, create_order, create_ticket
+from db_operations import get_all_tickets, get_all_orders, create_order, create_ticket, get_user_tickets, get_user_orders
 
 # Define the port
 PORT = 8000
@@ -107,7 +107,7 @@ mock_tickets = [
 ]
 
 # Function to get user tickets
-def get_user_tickets(user_id, auth_header):
+def get_user_tickets_route(user_id, auth_header):
     """Get tickets for a specific user"""
     print(f"Getting tickets for user ID: {user_id}")
     
@@ -124,8 +124,7 @@ def get_user_tickets(user_id, auth_header):
     
     # In a real app, we would query the database
     # For now, filter the mock data
-    from db_operations import get_all_tickets
-    response = get_all_tickets()
+    response = get_user_tickets(user_id)
     
     if "error" in response:
         return response
@@ -137,7 +136,7 @@ def get_user_tickets(user_id, auth_header):
     return {"tickets": user_tickets}
 
 # Function to get user orders
-def get_user_orders(user_id, auth_header):
+def get_user_orders_route(user_id, auth_header):
     """Get orders for a specific user"""
     print(f"Getting orders for user ID: {user_id}")
     
@@ -153,8 +152,7 @@ def get_user_orders(user_id, auth_header):
         return {"error": payload["error"]}
     
     # In a real app, we would query the database
-    from db_operations import get_all_orders
-    response = get_all_orders()
+    response = get_user_orders(user_id)
     
     if "error" in response:
         return response
@@ -342,7 +340,6 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 return
             
             # Get tickets from database
-            from db_operations import get_all_tickets
             response = get_all_tickets()
             self._set_response()
             self.wfile.write(json_dumps(response).encode())
@@ -367,7 +364,6 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 return
             
             # Get orders from database
-            from db_operations import get_all_orders
             response = get_all_orders()
             self._set_response()
             self.wfile.write(json_dumps(response).encode())
@@ -380,7 +376,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             auth_header = self.headers.get('Authorization', '')
             
             # Generate ticket
-            response = generate_ticket(booking_id, auth_header)
+            # response = generate_ticket(booking_id, auth_header) # Function generate_ticket does not exist
+            response = {"error": "Function generate_ticket does not exist"}
             
             if "error" in response:
                 self._set_response(401)
@@ -398,7 +395,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             auth_header = self.headers.get('Authorization', '')
             
             # Get user tickets
-            response = get_user_tickets(user_id, auth_header)
+            response = get_user_tickets_route(user_id, auth_header)
             
             if "error" in response:
                 self._set_response(401)
@@ -416,7 +413,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             auth_header = self.headers.get('Authorization', '')
             
             # Get user orders
-            response = get_user_orders(user_id, auth_header)
+            response = get_user_orders_route(user_id, auth_header)
             
             if "error" in response:
                 self._set_response(401)
@@ -841,5 +838,3 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self._set_response(200)
             self.wfile.write(json_dumps(response).encode())
             return
-        
-        # Update

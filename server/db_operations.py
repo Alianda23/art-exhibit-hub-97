@@ -1,4 +1,3 @@
-
 from database import get_db_connection
 from decimal import Decimal
 import random
