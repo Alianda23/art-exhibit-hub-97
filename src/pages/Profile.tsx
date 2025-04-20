@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { formatPrice, formatDate } from '@/utils/formatters';
 import { CalendarIcon, MapPinIcon, UserIcon, PhoneIcon, MailIcon, Loader2 } from 'lucide-react';
-import { getUserOrders, generateExhibitionTicket } from '@/utils/mpesa';
+import { getUserOrders, generateExhibitionTicket } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
 type UserOrder = {
@@ -58,13 +58,17 @@ const Profile = () => {
     
     setLoading(true);
     try {
+      console.log('Fetching user orders for user ID:', currentUser.id);
       const response = await getUserOrders(currentUser.id);
+      console.log('User orders and tickets response:', response);
       
       if (response.orders) {
-        setOrders(response.orders.filter((order: any) => order.type === 'artwork'));
+        console.log('Setting orders:', response.orders.filter((order: any) => order.type === 'artwork'));
+        setOrders(response.orders.filter((order: any) => order.type === 'artwork' || !order.type));
       }
       
       if (response.tickets) {
+        console.log('Setting bookings:', response.tickets);
         setBookings(response.tickets);
       }
     } catch (error) {
@@ -87,7 +91,13 @@ const Profile = () => {
   const handlePrintTicket = async (bookingId: string) => {
     try {
       const response = await generateExhibitionTicket(bookingId);
-      if (response.ticketUrl) {
+      if (response && response.pdfData) {
+        // Handle the PDF data response
+        const pdfBlob = new Blob([response.pdfData], { type: 'application/pdf' });
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, '_blank');
+      } else if (response && response.ticketUrl) {
+        // Handle the ticket URL response
         window.open(response.ticketUrl, '_blank');
       } else {
         throw new Error('Failed to generate ticket');
@@ -182,7 +192,7 @@ const Profile = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-gold" />
                 <span className="ml-2">Loading your bookings...</span>
               </div>
-            ) : bookings.length > 0 ? (
+            ) : bookings && bookings.length > 0 ? (
               <div className="space-y-4">
                 {bookings.map((booking) => (
                   <Card key={booking.id} className="overflow-hidden">
@@ -247,7 +257,7 @@ const Profile = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-gold" />
                 <span className="ml-2">Loading your orders...</span>
               </div>
-            ) : orders.length > 0 ? (
+            ) : orders && orders.length > 0 ? (
               <div className="space-y-4">
                 {orders.map((order) => (
                   <Card key={order.id} className="overflow-hidden">

@@ -1,182 +1,138 @@
-// M-Pesa API utilities
 
-// M-Pesa credentials
-const CONSUMER_KEY = "sMwMwGZ8oOiSkNrUIrPbcCeWIO8UiQ3SV4CyX739uAyZVs1F";
-const CONSUMER_SECRET = "A3Hs5zRY3nDCn7XpxPuc1iAKpfy6UDdetiCalIAfuAIpgTROI5yCqqOewDfThh2o";
+// Utilities for interacting with M-Pesa payment API
+import { getToken } from '@/services/api';
+
 const API_URL = 'http://localhost:8000';
-const CALLBACK_URL = "https://webhook.site/3c1f62b5-4214-47d6-9f26-71c1f4b9c8f0";
-const API_BASE_URL = "https://sandbox.safaricom.co.ke";
 
-// Function to initiate STK Push
-export const initiateSTKPush = async (
+// Function to initiate M-Pesa STK Push payment
+export const initiateMpesaPayment = async (
   phoneNumber: string,
   amount: number,
   orderType: 'artwork' | 'exhibition',
   orderId: string,
+  userId: string,
   accountReference: string
-): Promise<any> => {
+) => {
   try {
-    // Format phone number to match M-Pesa requirements (remove '+' if present)
-    const formattedPhone = phoneNumber.startsWith('+') 
-      ? phoneNumber.substring(1) 
-      : phoneNumber;
+    console.log('Initiating M-Pesa payment with:', {
+      phoneNumber, amount, orderType, orderId, userId, accountReference
+    });
     
-    // Add validation for Kenyan phone numbers
-    // Should start with 254 (country code)
-    let validatedPhone = formattedPhone;
-    if (validatedPhone.startsWith('0')) {
-      // Convert format from 07XXXXXXXX to 2547XXXXXXXX
-      validatedPhone = '254' + validatedPhone.substring(1);
-    } else if (!validatedPhone.startsWith('254')) {
-      // Add country code if missing
-      validatedPhone = '254' + validatedPhone;
+    // Format phone number - ensure it starts with 254
+    let formattedPhone = phoneNumber.trim();
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '254' + formattedPhone.substring(1);
+    } else if (!formattedPhone.startsWith('254')) {
+      formattedPhone = '254' + formattedPhone;
     }
-    
-    console.log(`Initiating STK Push for phone: ${validatedPhone}, amount: ${amount}, order type: ${orderType}`);
-    
-    // Get user ID from localStorage
-    const userId = localStorage.getItem('userId') || '';
-    
-    // If userId is missing, throw an error
-    if (!userId) {
-      throw new Error("User ID is missing. Please log in and try again.");
-    }
-    
-    const requestBody = {
-      phoneNumber: validatedPhone,
-      amount,
-      orderType,
-      orderId,
-      userId,
-      accountReference,
-      callbackUrl: CALLBACK_URL
-    };
-    
-    console.log('STK Push request body:', requestBody);
     
     const response = await fetch(`${API_URL}/mpesa/stk-push`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('STK Push failed with server response:', errorData);
-      throw new Error(`M-Pesa API Error: ${errorData.error || 'Unknown error'}`);
-    }
-    
-    const responseData = await response.json();
-    console.log('STK Push response:', responseData);
-    return responseData;
-  } catch (error) {
-    console.error('M-Pesa STK Push error:', error);
-    throw error;
-  }
-};
-
-// Function to check transaction status
-export const checkTransactionStatus = async (checkoutRequestId: string): Promise<any> => {
-  try {
-    console.log(`Checking transaction status for checkoutRequestId: ${checkoutRequestId}`);
-    
-    const response = await fetch(`${API_URL}/mpesa/status/${checkoutRequestId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Transaction status check failed with server response:', errorData);
-      throw new Error(`M-Pesa API Error: ${errorData.error || 'Unknown error'}`);
-    }
-    
-    const responseData = await response.json();
-    console.log('Transaction status response:', responseData);
-    return responseData;
-  } catch (error) {
-    console.error('M-Pesa transaction status check error:', error);
-    throw error;
-  }
-};
-
-// Update finalizeOrder to handle both artwork orders and exhibition tickets
-export const finalizeOrder = async (
-  checkoutRequestId: string,
-  orderType: 'artwork' | 'exhibition',
-  orderData: any
-): Promise<any> => {
-  try {
-    const endpoint = orderType === 'artwork' ? '/orders/finalize' : '/tickets/finalize';
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
-        checkoutRequestId,
+        phoneNumber: formattedPhone,
+        amount,
         orderType,
-        orderData
+        orderId,
+        userId,
+        accountReference,
+        callbackUrl: 'https://webhook.site/3c1f62b5-4214-47d6-9f26-71c1f4b9c8f0'
       }),
     });
     
-    return await response.json();
+    const data = await response.json();
+    console.log('M-Pesa STK Push response:', data);
+    
+    return data;
   } catch (error) {
-    console.error('Order finalization error:', error);
+    console.error('Error initiating M-Pesa payment:', error);
     throw error;
   }
 };
 
-// Update getUserOrders to fetch both orders and tickets
-export const getUserOrders = async (userId: string): Promise<any> => {
+// Function to check M-Pesa payment status
+export const checkPaymentStatus = async (checkoutRequestId: string) => {
   try {
-    const [ordersResponse, ticketsResponse] = await Promise.all([
-      fetch(`${API_URL}/orders/user/${userId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }),
-      fetch(`${API_URL}/tickets/user/${userId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-    ]);
-    
-    const [orders, tickets] = await Promise.all([
-      ordersResponse.json(),
-      ticketsResponse.json()
-    ]);
-    
-    return {
-      orders: orders.orders || [],
-      tickets: tickets.tickets || []
-    };
+    const response = await fetch(`${API_URL}/mpesa/status/${checkoutRequestId}`);
+    const data = await response.json();
+    console.log('M-Pesa payment status response:', data);
+    return data;
   } catch (error) {
-    console.error('Get user orders/tickets error:', error);
+    console.error('Error checking M-Pesa payment status:', error);
     throw error;
   }
 };
 
 // Function to generate exhibition ticket
-export const generateExhibitionTicket = async (bookingId: string): Promise<any> => {
+export const generateExhibitionTicket = async (bookingId: string) => {
   try {
+    console.log('Generating exhibition ticket for booking ID:', bookingId);
+    
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+    
     const response = await fetch(`${API_URL}/tickets/generate/${bookingId}`, {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
-      },
+      }
     });
     
-    return await response.json();
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to generate ticket');
+    }
+    
+    const data = await response.json();
+    console.log('Ticket generation response:', data);
+    return data;
   } catch (error) {
-    console.error('Ticket generation error:', error);
+    console.error('Error generating ticket:', error);
+    throw error;
+  }
+};
+
+// Function to get user orders and tickets
+export const getUserOrders = async (userId: string) => {
+  try {
+    console.log('Getting user orders for user ID:', userId);
+    
+    const token = getToken();
+    if (!token) {
+      console.error('No authentication token found');
+      throw new Error('No authentication token found');
+    }
+    
+    const response = await fetch(`${API_URL}/orders/user/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch user orders');
+    }
+    
+    const data = await response.json();
+    console.log('User orders response:', data);
+    
+    // Structure the response data properly
+    const result = {
+      orders: data.orders || [],
+      tickets: data.tickets || []
+    };
+    
+    return result;
+  } catch (error) {
+    console.error('Error getting user orders:', error);
     throw error;
   }
 };

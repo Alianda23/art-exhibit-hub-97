@@ -487,12 +487,14 @@ export const generateExhibitionTicket = async (bookingId: string) => {
 
 // Get user tickets
 export const getUserTickets = async (userId: string) => {
+  console.log('Getting user tickets for user ID:', userId);
   return await authFetch(`/tickets/user/${userId}`);
 };
 
 // Get user orders
 export const getUserOrders = async (userId: string) => {
   try {
+    console.log('Getting user orders for user ID:', userId);
     return await authFetch(`/orders/user/${userId}`);
   } catch (error) {
     console.error('Get user orders error:', error);
