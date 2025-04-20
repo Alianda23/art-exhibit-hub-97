@@ -3,12 +3,18 @@
  * Utility functions for processing and displaying images
  */
 
+// Collection of default exhibition images to use randomly
+const defaultExhibitionImages = [
+  "/static/uploads/default_exhibition.jpg",
+  "/placeholder.svg"
+];
+
 // Process image URL to ensure it works with the server's structure
 export const getValidImageUrl = (url: string | undefined): string => {
   // Default fallback for empty or undefined URLs
   if (!url) {
     console.log("Empty image URL, using placeholder");
-    return "/placeholder.svg";
+    return "http://localhost:8000/placeholder.svg";
   }
   
   // If it's already a complete URL (http/https), use it as is
@@ -23,7 +29,7 @@ export const getValidImageUrl = (url: string | undefined): string => {
     // If they're truncated, it's better to use a placeholder
     if (url.length < 100 || !url.includes(',')) {
       console.log("Detected incomplete base64 image, using placeholder instead");
-      return "/placeholder.svg";
+      return "http://localhost:8000/placeholder.svg";
     }
     console.log("Using base64 image data");
     return url;
@@ -36,37 +42,28 @@ export const getValidImageUrl = (url: string | undefined): string => {
     return fixed;
   }
   
-  // Handle static/uploads paths correctly
-  if (url.startsWith('/static/uploads/')) {
-    // For development environment, prepend with server URL
-    // In development, the server typically runs on port 8000
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      const serverUrl = `http://localhost:8000${url}`;
-      console.log(`Development static URL: ${url} → ${serverUrl}`);
-      return serverUrl;
-    }
-
-    // For production environment, prepend with the actual server URL
-    const serverUrl = `http://localhost:8000${url}`;
-    console.log(`Production static URL: ${url} → ${serverUrl}`);
-    return serverUrl;
-  }
-  
-  // For other cases, assume it's a valid relative path
-  // For development environment, prepend with server URL if it starts with /static
-  if (url.startsWith('/static/') && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    const serverUrl = `http://localhost:8000${url}`;
-    console.log(`Development relative path: ${url} → ${serverUrl}`);
-    return serverUrl;
-  }
-  
-  // If we're in production, we still need to prepend server URL for static files
+  // Handle static/uploads paths correctly - always prepend server URL
   if (url.startsWith('/static/')) {
     const serverUrl = `http://localhost:8000${url}`;
-    console.log(`Production static path: ${url} → ${serverUrl}`);
+    console.log(`Server path for static URL: ${url} → ${serverUrl}`);
     return serverUrl;
   }
   
+  // For other URLs that don't start with /static/, assume they need the path added
+  if (!url.startsWith('/') && !url.includes('/')) {
+    const serverUrl = `http://localhost:8000/static/uploads/${url}`;
+    console.log(`Added full path to filename: ${url} → ${serverUrl}`);
+    return serverUrl;
+  }
+  
+  // For paths that start with / but not /static/
+  if (url.startsWith('/') && !url.startsWith('/static/')) {
+    const serverUrl = `http://localhost:8000/static/uploads${url}`;
+    console.log(`Added static path prefix: ${url} → ${serverUrl}`);
+    return serverUrl;
+  }
+  
+  // Fallback - use as is but warn
   console.log(`Using URL as is (default case): ${url}`);
   return url;
 };
@@ -76,10 +73,10 @@ export const createImageSrc = (url: string | undefined, defaultImage = "/placeho
   try {
     const processedUrl = getValidImageUrl(url);
     console.log(`Processing image URL: ${url} → ${processedUrl}`);
-    return processedUrl || defaultImage;
+    return processedUrl || `http://localhost:8000${defaultImage}`;
   } catch (error) {
     console.error("Error processing image URL:", error);
-    return defaultImage;
+    return `http://localhost:8000${defaultImage}`;
   }
 };
 
@@ -88,7 +85,7 @@ export const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event
   const target = e.target as HTMLImageElement;
   console.error(`Image failed to load: ${target.src}`);
   target.onerror = null; // Prevent infinite loop if fallback also fails
-  target.src = fallbackSrc;
+  target.src = `http://localhost:8000${fallbackSrc}`;
 };
 
 // Preload images to ensure they're in the browser cache
@@ -103,4 +100,12 @@ export const preloadImage = (url: string | undefined): void => {
   } catch (error) {
     console.error("Error preloading image:", error);
   }
+};
+
+// Get a random exhibition image from the default collection
+export const getRandomExhibitionImage = (): string => {
+  const randomIndex = Math.floor(Math.random() * defaultExhibitionImages.length);
+  const imagePath = defaultExhibitionImages[randomIndex];
+  console.log(`Selected random exhibition image: ${imagePath}`);
+  return imagePath;
 };
