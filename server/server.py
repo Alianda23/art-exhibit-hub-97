@@ -17,13 +17,14 @@ from contact import create_contact_message, get_messages, update_message, json_d
 from db_setup import initialize_database
 from middleware import auth_required, admin_required, extract_auth_token, verify_token
 from mpesa import handle_stk_push_request, check_transaction_status, handle_mpesa_callback
-from db_operations import get_all_tickets, get_all_orders
+from db_operations import get_all_tickets, get_all_orders, create_order, create_ticket
 
 # Define the port
 PORT = 8000
 
 # Ensure the static/uploads directory exists
 def ensure_uploads_directory():
+    """Ensure the static/uploads directory exists"""
     uploads_dir = os.path.join(os.path.dirname(__file__), "static", "uploads")
     if not os.path.exists(uploads_dir):
         os.makedirs(uploads_dir)
@@ -34,6 +35,7 @@ ensure_uploads_directory()
 
 # Create a default exhibition image if it doesn't exist
 def create_default_exhibition_image():
+    """Create a default exhibition image if it doesn't exist"""
     default_image_path = os.path.join(os.path.dirname(__file__), "static", "uploads", "default_exhibition.jpg")
     if not os.path.exists(default_image_path):
         try:
@@ -104,12 +106,12 @@ mock_tickets = [
     }
 ]
 
-# Function to get all tickets (mock implementation)
-def get_all_tickets(auth_header):
-    """Get all tickets (admin only)"""
-    print(f"Getting all tickets with auth header: {auth_header[:20]}... (truncated)")
+# Function to get user tickets
+def get_user_tickets(user_id, auth_header):
+    """Get tickets for a specific user"""
+    print(f"Getting tickets for user ID: {user_id}")
     
-    # Extract and verify token - directly use the token from auth_header
+    # Extract and verify token
     token = extract_auth_token(auth_header)
     if not token:
         print("Authentication required - no token found")
@@ -120,32 +122,99 @@ def get_all_tickets(auth_header):
         print(f"Authentication failed: {payload['error']}")
         return {"error": payload["error"]}
     
-    # Check if user is admin
-    if not payload.get("is_admin", False):
-        print("Access denied - not an admin user")
-        return {"error": "Unauthorized access: Admin privileges required"}
+    # In a real app, we would query the database
+    # For now, filter the mock data
+    from db_operations import get_all_tickets
+    response = get_all_tickets()
     
-    print(f"Admin user authenticated, returning {len(mock_tickets)} tickets")
-    # Return tickets data
-    return {"tickets": mock_tickets}
+    if "error" in response:
+        return response
+    
+    tickets = response.get("tickets", [])
+    user_tickets = [ticket for ticket in tickets if str(ticket.get("user_id")) == str(user_id)]
+    
+    print(f"Found {len(user_tickets)} tickets for user {user_id}")
+    return {"tickets": user_tickets}
 
-# Function to generate exhibition ticket (mock implementation)
-def generate_ticket(booking_id, auth_header):
+# Function to get user orders
+def get_user_orders(user_id, auth_header):
+    """Get orders for a specific user"""
+    print(f"Getting orders for user ID: {user_id}")
+    
     # Extract and verify token
     token = extract_auth_token(auth_header)
     if not token:
+        print("Authentication required - no token found")
         return {"error": "Authentication required"}
     
     payload = verify_token(token)
     if isinstance(payload, dict) and "error" in payload:
+        print(f"Authentication failed: {payload['error']}")
         return {"error": payload["error"]}
     
-    # In a real application, we would generate a PDF here
-    # For demo purposes, we'll return mock data
-    return {
-        "pdfData": "Mock PDF data for ticket " + booking_id,
-        "success": True
-    }
+    # In a real app, we would query the database
+    from db_operations import get_all_orders
+    response = get_all_orders()
+    
+    if "error" in response:
+        return response
+    
+    orders = response.get("orders", [])
+    user_orders = [order for order in orders if str(order.get("user_id")) == str(user_id)]
+    
+    print(f"Found {len(user_orders)} orders for user {user_id}")
+    return {"orders": user_orders}
+
+# Function to finalize orders and create tickets
+def finalize_order(order_data, is_exhibition=False):
+    """Finalize an order and create ticket if it's an exhibition"""
+    print(f"Finalizing {'exhibition' if is_exhibition else 'artwork'} order: {order_data}")
+    
+    try:
+        user_id = order_data.get("userId")
+        if not user_id:
+            return {"error": "User ID is required"}
+        
+        if is_exhibition:
+            # For exhibition, create a ticket
+            exhibition_id = order_data.get("itemId")
+            slots = order_data.get("slots", 1)
+            
+            if not exhibition_id:
+                return {"error": "Exhibition ID is required"}
+            
+            # Create ticket in database
+            result = create_ticket(user_id, exhibition_id, slots)
+            
+            if "error" in result:
+                return result
+            
+            return {
+                "success": True,
+                "id": result.get("ticket_id"),
+                "ticket_code": result.get("ticket_code")
+            }
+        else:
+            # For artwork, create an order
+            artwork_id = order_data.get("itemId")
+            amount = order_data.get("totalAmount")
+            
+            if not artwork_id or not amount:
+                return {"error": "Artwork ID and total amount are required"}
+            
+            # Create order in database
+            result = create_order(user_id, "artwork", artwork_id, amount)
+            
+            if "error" in result:
+                return result
+            
+            return {
+                "success": True,
+                "id": result.get("order_id")
+            }
+    except Exception as e:
+        print(f"Error finalizing order: {e}")
+        return {"error": str(e)}
 
 class RequestHandler(http.server.BaseHTTPRequestHandler):
     
@@ -312,6 +381,42 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             
             # Generate ticket
             response = generate_ticket(booking_id, auth_header)
+            
+            if "error" in response:
+                self._set_response(401)
+                self.wfile.write(json_dumps({"error": response["error"]}).encode())
+                return
+            
+            self._set_response()
+            self.wfile.write(json_dumps(response).encode())
+            return
+            
+        # Handle GET /tickets/user/{id} (get user tickets)
+        elif path.startswith('/tickets/user/') and len(path.split('/')) == 4:
+            user_id = path.split('/')[3]
+            print(f"Processing get user tickets request for user {user_id}")
+            auth_header = self.headers.get('Authorization', '')
+            
+            # Get user tickets
+            response = get_user_tickets(user_id, auth_header)
+            
+            if "error" in response:
+                self._set_response(401)
+                self.wfile.write(json_dumps({"error": response["error"]}).encode())
+                return
+            
+            self._set_response()
+            self.wfile.write(json_dumps(response).encode())
+            return
+            
+        # Handle GET /orders/user/{id} (get user orders)
+        elif path.startswith('/orders/user/') and len(path.split('/')) == 4:
+            user_id = path.split('/')[3]
+            print(f"Processing get user orders request for user {user_id}")
+            auth_header = self.headers.get('Authorization', '')
+            
+            # Get user orders
+            response = get_user_orders(user_id, auth_header)
             
             if "error" in response:
                 self._set_response(401)
@@ -573,6 +678,128 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json_dumps(response).encode())
             return
         
+        # Create order for artwork
+        elif path == '/orders/artwork':
+            # Extract token from headers
+            auth_header = self.headers.get('Authorization', '')
+            token = extract_auth_token(auth_header)
+            
+            if not token:
+                self._set_response(401)
+                self.wfile.write(json_dumps({"error": "Authentication required"}).encode())
+                return
+            
+            # Verify token
+            payload = verify_token(token)
+            if isinstance(payload, dict) and "error" in payload:
+                self._set_response(401)
+                self.wfile.write(json_dumps({"error": payload["error"]}).encode())
+                return
+            
+            # Create order
+            result = create_order(
+                post_data.get('userId'),
+                'artwork',
+                post_data.get('artworkId'),
+                post_data.get('amount')
+            )
+            
+            if "error" in result:
+                self._set_response(400)
+                self.wfile.write(json_dumps(result).encode())
+                return
+            
+            self._set_response(201)
+            self.wfile.write(json_dumps(result).encode())
+            return
+
+        # Create order for exhibition
+        elif path == '/orders/exhibition':
+            # Extract token from headers
+            auth_header = self.headers.get('Authorization', '')
+            token = extract_auth_token(auth_header)
+            
+            if not token:
+                self._set_response(401)
+                self.wfile.write(json_dumps({"error": "Authentication required"}).encode())
+                return
+            
+            # Verify token
+            payload = verify_token(token)
+            if isinstance(payload, dict) and "error" in payload:
+                self._set_response(401)
+                self.wfile.write(json_dumps({"error": payload["error"]}).encode())
+                return
+            
+            # Create order for exhibition
+            result = create_order(
+                post_data.get('userId'),
+                'exhibition',
+                post_data.get('exhibitionId'),
+                post_data.get('amount')
+            )
+            
+            if "error" in result:
+                self._set_response(400)
+                self.wfile.write(json_dumps(result).encode())
+                return
+            
+            # Also create a ticket
+            ticket_result = create_ticket(
+                post_data.get('userId'),
+                post_data.get('exhibitionId'),
+                post_data.get('slots', 1)
+            )
+            
+            if "error" in ticket_result:
+                self._set_response(400)
+                self.wfile.write(json_dumps(ticket_result).encode())
+                return
+            
+            # Return success with both order and ticket info
+            response = {
+                "success": True,
+                "order_id": result.get("order_id"),
+                "ticket_id": ticket_result.get("ticket_id"),
+                "ticket_code": ticket_result.get("ticket_code")
+            }
+            
+            self._set_response(201)
+            self.wfile.write(json_dumps(response).encode())
+            return
+            
+        # Finalize orders (after payment)
+        elif path == '/orders/finalize' or path == '/tickets/finalize':
+            is_exhibition = path == '/tickets/finalize'
+            result = finalize_order(post_data, is_exhibition)
+            
+            if "error" in result:
+                self._set_response(400)
+                self.wfile.write(json_dumps(result).encode())
+                return
+            
+            self._set_response(201)
+            self.wfile.write(json_dumps(result).encode())
+            return
+
+        # M-Pesa transaction status check endpoint
+        elif path.startswith('/mpesa/status/'):
+            # Extract the checkout request ID from the path
+            checkout_request_id = path.split('/')[3]
+            print(f"Checking M-Pesa transaction status for: {checkout_request_id}")
+            
+            # Check the transaction status
+            response = check_transaction_status(checkout_request_id)
+            
+            if "error" in response:
+                self._set_response(400)
+                self.wfile.write(json_dumps(response).encode())
+                return
+            
+            self._set_response(200)
+            self.wfile.write(json_dumps(response).encode())
+            return
+        
         # Default 404 response
         self._set_response(404)
         self.wfile.write(json_dumps({"error": "Resource not found"}).encode())
@@ -615,120 +842,4 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json_dumps(response).encode())
             return
         
-        # Update exhibition (admin only)
-        elif path.startswith('/exhibitions/') and len(path.split('/')) == 3:
-            exhibition_id = path.split('/')[2]
-            auth_header = self.headers.get('Authorization', '')
-            
-            response = update_exhibition(auth_header, exhibition_id, post_data)
-            
-            if "error" in response:
-                error_message = response["error"]
-                
-                if "Authentication" in error_message or "authorized" in error_message:
-                    self._set_response(401)
-                elif "Admin" in error_message:
-                    self._set_response(403)
-                elif "not found" in error_message:
-                    self._set_response(404)
-                else:
-                    self._set_response(400)
-                    
-                self.wfile.write(json_dumps({"error": error_message}).encode())
-                return
-            
-            self._set_response(200)
-            self.wfile.write(json_dumps(response).encode())
-            return
-        
-        # Default 404 response
-        self._set_response(404)
-        self.wfile.write(json_dumps({"error": "Resource not found"}).encode())
-    
-    def do_DELETE(self):
-        # Process based on path
-        path = self.path
-        
-        # Delete artwork (admin only)
-        if path.startswith('/artworks/') and len(path.split('/')) == 3:
-            artwork_id = path.split('/')[2]
-            auth_header = self.headers.get('Authorization', '')
-            
-            response = delete_artwork(auth_header, artwork_id)
-            
-            if "error" in response:
-                error_message = response["error"]
-                
-                if "Authentication" in error_message or "authorized" in error_message:
-                    self._set_response(401)
-                elif "Admin" in error_message:
-                    self._set_response(403)
-                elif "not found" in error_message:
-                    self._set_response(404)
-                else:
-                    self._set_response(400)
-                    
-                self.wfile.write(json_dumps({"error": error_message}).encode())
-                return
-            
-            self._set_response(200)
-            self.wfile.write(json_dumps(response).encode())
-            return
-        
-        # Delete exhibition (admin only)
-        elif path.startswith('/exhibitions/') and len(path.split('/')) == 3:
-            exhibition_id = path.split('/')[2]
-            auth_header = self.headers.get('Authorization', '')
-            
-            response = delete_exhibition(auth_header, exhibition_id)
-            
-            if "error" in response:
-                error_message = response["error"]
-                
-                if "Authentication" in error_message or "authorized" in error_message:
-                    self._set_response(401)
-                elif "Admin" in error_message:
-                    self._set_response(403)
-                elif "not found" in error_message:
-                    self._set_response(404)
-                else:
-                    self._set_response(400)
-                    
-                self.wfile.write(json_dumps({"error": error_message}).encode())
-                return
-            
-            self._set_response(200)
-            self.wfile.write(json_dumps(response).encode())
-            return
-        
-        # Default 404 response
-        self._set_response(404)
-        self.wfile.write(json_dumps({"error": "Resource not found"}).encode())
-
-def main():
-    """Start the server"""
-    # Initialize the database
-    print("Initializing database...")
-    initialize_database()
-    
-    # Create uploads directory if it doesn't exist
-    ensure_uploads_directory()
-    
-    # Create default exhibition image
-    create_default_exhibition_image()
-    
-    # Create an HTTP server
-    print(f"Starting server on port {PORT}...")
-    httpd = socketserver.ThreadingTCPServer(("", PORT), RequestHandler)
-    print(f"Server running on port {PORT}")
-    
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("\nShutting down server...")
-    finally:
-        httpd.server_close()
-        print("Server closed")
-
-if __name__ == "__main__":
-    main()
+        # Update

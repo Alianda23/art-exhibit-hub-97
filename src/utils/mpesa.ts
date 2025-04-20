@@ -1,138 +1,86 @@
 
-// Utilities for interacting with M-Pesa payment API
-import { getToken } from '@/services/api';
+// This file contains functions for interacting with M-Pesa payment system
 
-const API_URL = 'http://localhost:8000';
-
-// Function to initiate M-Pesa STK Push payment
+/**
+ * Initiates M-Pesa payment
+ * @param phoneNumber The phone number to send STK push
+ * @param amount The amount to charge
+ * @param orderType Whether it's for artwork or exhibition
+ * @param referenceId The ID of the item (artwork or exhibition)
+ * @param userId The ID of the user making the payment
+ * @param accountReference Reference for the transaction
+ * @returns Promise with the response from the STK push request
+ */
 export const initiateMpesaPayment = async (
   phoneNumber: string,
   amount: number,
   orderType: 'artwork' | 'exhibition',
-  orderId: string,
+  referenceId: string,
   userId: string,
   accountReference: string
 ) => {
   try {
-    console.log('Initiating M-Pesa payment with:', {
-      phoneNumber, amount, orderType, orderId, userId, accountReference
-    });
+    console.log(`Initiating M-Pesa payment: ${amount} for ${orderType} (${referenceId})`);
     
-    // Format phone number - ensure it starts with 254
-    let formattedPhone = phoneNumber.trim();
-    if (formattedPhone.startsWith('0')) {
-      formattedPhone = '254' + formattedPhone.substring(1);
-    } else if (!formattedPhone.startsWith('254')) {
-      formattedPhone = '254' + formattedPhone;
+    // Format phone number if needed (remove + and ensure starts with 254)
+    let formattedPhone = phoneNumber;
+    if (phoneNumber.startsWith('+')) {
+      formattedPhone = phoneNumber.substring(1);
+    }
+    if (phoneNumber.startsWith('0')) {
+      formattedPhone = `254${phoneNumber.substring(1)}`;
     }
     
-    const response = await fetch(`${API_URL}/mpesa/stk-push`, {
+    const response = await fetch('http://localhost:8000/mpesa/stk-push', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         phoneNumber: formattedPhone,
         amount,
         orderType,
-        orderId,
+        itemId: referenceId,
         userId,
-        accountReference,
-        callbackUrl: 'https://webhook.site/3c1f62b5-4214-47d6-9f26-71c1f4b9c8f0'
-      }),
+        accountReference
+      })
     });
     
-    const data = await response.json();
-    console.log('M-Pesa STK Push response:', data);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Payment initiation failed');
+    }
     
+    const data = await response.json();
+    console.log('STK push response:', data);
     return data;
   } catch (error) {
     console.error('Error initiating M-Pesa payment:', error);
-    throw error;
+    return { error: error instanceof Error ? error.message : 'Failed to initiate payment' };
   }
 };
 
-// Function to check M-Pesa payment status
+/**
+ * Checks the status of an M-Pesa transaction
+ * @param checkoutRequestId The checkout request ID from the STK push
+ * @returns Promise with the transaction status
+ */
 export const checkPaymentStatus = async (checkoutRequestId: string) => {
   try {
-    const response = await fetch(`${API_URL}/mpesa/status/${checkoutRequestId}`);
-    const data = await response.json();
-    console.log('M-Pesa payment status response:', data);
-    return data;
-  } catch (error) {
-    console.error('Error checking M-Pesa payment status:', error);
-    throw error;
-  }
-};
-
-// Function to generate exhibition ticket
-export const generateExhibitionTicket = async (bookingId: string) => {
-  try {
-    console.log('Generating exhibition ticket for booking ID:', bookingId);
+    console.log(`Checking payment status for checkout request: ${checkoutRequestId}`);
     
-    const token = getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    
-    const response = await fetch(`${API_URL}/tickets/generate/${bookingId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
-    });
+    const response = await fetch(`http://localhost:8000/mpesa/status/${checkoutRequestId}`);
     
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to generate ticket');
+      throw new Error(errorData.error || 'Failed to check payment status');
     }
     
     const data = await response.json();
-    console.log('Ticket generation response:', data);
+    console.log('Payment status response:', data);
     return data;
   } catch (error) {
-    console.error('Error generating ticket:', error);
-    throw error;
-  }
-};
-
-// Function to get user orders and tickets
-export const getUserOrders = async (userId: string) => {
-  try {
-    console.log('Getting user orders for user ID:', userId);
-    
-    const token = getToken();
-    if (!token) {
-      console.error('No authentication token found');
-      throw new Error('No authentication token found');
-    }
-    
-    const response = await fetch(`${API_URL}/orders/user/${userId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to fetch user orders');
-    }
-    
-    const data = await response.json();
-    console.log('User orders response:', data);
-    
-    // Structure the response data properly
-    const result = {
-      orders: data.orders || [],
-      tickets: data.tickets || []
-    };
-    
-    return result;
-  } catch (error) {
-    console.error('Error getting user orders:', error);
-    throw error;
+    console.error('Error checking payment status:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to check payment status' };
   }
 };
