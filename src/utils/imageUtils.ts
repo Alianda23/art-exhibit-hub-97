@@ -45,46 +45,11 @@ export const getValidImageUrl = (url: string | undefined): string => {
       console.log(`Development static URL: ${url} → ${serverUrl}`);
       return serverUrl;
     }
-    console.log(`Using static URL as is: ${url}`);
-    return url;
-  }
-  
-  // For server-side image paths that need to be properly formatted
-  if (url.startsWith('/')) {
-    // If it's a path starting with /, make sure it has the static/uploads prefix
-    if (!url.startsWith('/static/uploads/')) {
-      const newUrl = `/static/uploads${url}`;
-      // For development environment, prepend with server URL
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        const serverUrl = `http://localhost:8000${newUrl}`;
-        console.log(`Development path (prefix added): ${url} → ${serverUrl}`);
-        return serverUrl;
-      }
-      console.log(`Added static prefix: ${url} → ${newUrl}`);
-      return newUrl;
-    }
-    
-    // For development environment, prepend with server URL
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      const serverUrl = `http://localhost:8000${url}`;
-      console.log(`Development path: ${url} → ${serverUrl}`);
-      return serverUrl;
-    }
-    console.log(`Using path as is: ${url}`);
-    return url;
-  }
-  
-  // For simple filenames without path, add the full path
-  if (!url.includes('/')) {
-    const newUrl = `/static/uploads/${url}`;
-    // For development environment, prepend with server URL
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      const serverUrl = `http://localhost:8000${newUrl}`;
-      console.log(`Development filename: ${url} → ${serverUrl}`);
-      return serverUrl;
-    }
-    console.log(`Added full path: ${url} → ${newUrl}`);
-    return newUrl;
+
+    // For production environment, prepend with the actual server URL
+    const serverUrl = `http://localhost:8000${url}`;
+    console.log(`Production static URL: ${url} → ${serverUrl}`);
+    return serverUrl;
   }
   
   // For other cases, assume it's a valid relative path
@@ -92,6 +57,13 @@ export const getValidImageUrl = (url: string | undefined): string => {
   if (url.startsWith('/static/') && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
     const serverUrl = `http://localhost:8000${url}`;
     console.log(`Development relative path: ${url} → ${serverUrl}`);
+    return serverUrl;
+  }
+  
+  // If we're in production, we still need to prepend server URL for static files
+  if (url.startsWith('/static/')) {
+    const serverUrl = `http://localhost:8000${url}`;
+    console.log(`Production static path: ${url} → ${serverUrl}`);
     return serverUrl;
   }
   
