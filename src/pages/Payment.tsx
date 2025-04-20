@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatPrice } from '@/utils/formatters';
 import { useToast } from '@/hooks/use-toast';
-import { initiateMpesaPayment, checkPaymentStatus } from '@/utils/mpesa';
+import { initiateSTKPush, checkTransactionStatus, finalizeOrder } from '@/utils/mpesa';
 import { DollarSign, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -66,9 +67,9 @@ const Payment = () => {
       setCheckingStatus(true);
       
       try {
-        const statusResponse = await checkPaymentStatus(checkoutRequestId);
+        const statusResponse = await checkTransactionStatus(checkoutRequestId);
         
-        if (statusResponse.status === 'completed' || statusResponse.ResultCode === "0") {
+        if (statusResponse.ResultCode === "0") {
           // Payment successful
           clearInterval(statusCheckInterval as number);
           
@@ -77,7 +78,6 @@ const Payment = () => {
           
           // Finalize the order in the backend
           if (order && currentUser) {
-            // Create the object to pass to the backend
             const orderData = {
               ...order,
               userId: currentUser.id,
@@ -86,42 +86,21 @@ const Payment = () => {
               paymentStatus: 'completed'
             };
             
-            try {
-              // Use the API to save the completed order
-              let finalizeEndpoint = order.type === 'artwork' ? 
-                '/orders/finalize' : '/tickets/finalize';
-              
-              const response = await fetch(`http://localhost:8000${finalizeEndpoint}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(orderData)
-              });
-              
-              if (!response.ok) {
-                throw new Error('Failed to finalize order');
-              }
-              
-              const finalizeResponse = await response.json();
-              
-              if (finalizeResponse.success || finalizeResponse.id) {
-                // Navigate to success page with order details
-                const orderId = finalizeResponse.id || finalizeResponse.orderId;
-                navigate(`/payment-success?type=${order.type}&id=${orderId}&title=${encodeURIComponent(order.title)}`);
-              } else {
-                throw new Error("Failed to finalize order");
-              }
-            } catch (error) {
-              console.error('Error finalizing order:', error);
-              toast({
-                title: "Error saving your order",
-                description: "Your payment was successful, but we couldn't save your order details. Please contact support.",
-                variant: "destructive"
-              });
+            // Call API to save order/booking to database
+            const finalizeResponse = await finalizeOrder(
+              checkoutRequestId,
+              order.type,
+              orderData
+            );
+            
+            if (finalizeResponse.success) {
+              // Navigate to success page with order details
+              navigate(`/payment-success?type=${order.type}&id=${finalizeResponse.orderId}&title=${encodeURIComponent(order.title)}`);
+            } else {
+              throw new Error("Failed to finalize order");
             }
           }
-        } else if (statusResponse.errorCode === "500.001.1001" || statusResponse.status === 'pending') {
+        } else if (statusResponse.errorCode === "500.001.1001") {
           // Transaction still in process, continue checking
           setStatusCheckAttempts(prev => prev + 1);
           
@@ -233,12 +212,11 @@ const Payment = () => {
       console.log('Initiating payment with user ID:', currentUser.id);
 
       // Call M-Pesa STK Push with the required fields
-      const response = await initiateMpesaPayment(
+      const response = await initiateSTKPush(
         phoneNumber,
         order.totalAmount,
         order.type,
         order.itemId,
-        currentUser.id,
         accountReference
       );
       

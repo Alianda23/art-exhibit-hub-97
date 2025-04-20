@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { isAdmin, getAllTickets, generateExhibitionTicket, authFetch } from '@/services/api';
+import { isAdmin, getAllTickets, generateExhibitionTicket } from '@/services/api';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
