@@ -385,26 +385,27 @@ def handle_mpesa_callback(callback_data):
 def handle_stk_push_request(request_data):
     """Handle STK Push request from frontend"""
     try:
+        print("STK Push request received:", request_data)
+        
         phone_number = request_data.get("phoneNumber")
         amount = request_data.get("amount")
         order_type = request_data.get("orderType")
-        order_id = request_data.get("orderId")  # Changed from referenceId to orderId
+        order_id = request_data.get("orderId")
         user_id = request_data.get("userId")
         account_reference = request_data.get("accountReference")
         callback_url = request_data.get("callbackUrl", CALLBACK_URL)
         slots = request_data.get("slots", 1)  # For exhibition tickets
         
-        # Log all received fields for debugging
-        print(f"STK Push request received: {request_data}")
+        # Validate required fields
+        required_fields = ["phoneNumber", "amount", "orderType", "orderId", "userId"]
+        missing_fields = []
         
-        if not all([phone_number, amount, order_type, order_id, user_id]):
-            missing_fields = []
-            if not phone_number: missing_fields.append("phoneNumber")
-            if not amount: missing_fields.append("amount")
-            if not order_type: missing_fields.append("orderType")
-            if not order_id: missing_fields.append("orderId")
-            if not user_id: missing_fields.append("userId")
-            
+        for field in required_fields:
+            value = request_data.get(field)
+            if not value or (isinstance(value, str) and value.strip() == ''):
+                missing_fields.append(field)
+        
+        if missing_fields:
             error_msg = f"Missing required fields: {', '.join(missing_fields)}"
             print(error_msg)
             return {"error": error_msg}
@@ -423,7 +424,6 @@ def handle_stk_push_request(request_data):
             return stk_result
         
         # For development, create order and ticket immediately after STK push initiation
-        # In production, this should be done after confirming payment
         if order_type == "exhibition":
             # Create ticket
             from db_operations import create_ticket, create_order

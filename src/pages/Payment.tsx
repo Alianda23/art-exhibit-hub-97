@@ -190,8 +190,19 @@ const Payment = () => {
       }
 
       if (!currentUser || !currentUser.id) {
-        throw new Error('User information missing. Please login again.');
+        toast({
+          title: "Authentication Required",
+          description: "You need to be logged in to complete this payment. Please log in and try again.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        setPaymentStatus('failed');
+        navigate('/login', { state: { returnTo: '/payment' } });
+        return;
       }
+
+      // Ensure userId is stored in localStorage
+      localStorage.setItem('userId', currentUser.id);
 
       // Generate a reference for this transaction
       const accountReference = order.type === 'artwork' 

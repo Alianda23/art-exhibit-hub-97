@@ -35,14 +35,19 @@ export const initiateSTKPush = async (
     
     console.log(`Initiating STK Push for phone: ${validatedPhone}, amount: ${amount}, order type: ${orderType}`);
     
-    // Add user ID to request body
+    // Get user ID from localStorage
     const userId = localStorage.getItem('userId') || '';
+    
+    // If userId is missing, throw an error
+    if (!userId) {
+      throw new Error("User ID is missing. Please log in and try again.");
+    }
     
     const requestBody = {
       phoneNumber: validatedPhone,
       amount,
       orderType,
-      orderId, // Changed from referenceId to orderId to match backend expectation
+      orderId,
       userId,
       accountReference,
       callbackUrl: CALLBACK_URL
