@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Exhibition } from '@/types';
 import { getExhibition, getAllExhibitions } from '@/services/api';
+import { createImageSrc, handleImageError } from '@/utils/imageUtils';
 
 const ExhibitionDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -98,8 +98,8 @@ const ExhibitionDetail = () => {
     );
   }
 
-  const isSoldOut = exhibition.availableSlots === 0;
-  const isPast = exhibition.status === 'past';
+  const isSoldOut = exhibition?.availableSlots === 0;
+  const isPast = exhibition?.status === 'past';
   const isUnavailable = isSoldOut || isPast;
 
   return (
@@ -111,9 +111,10 @@ const ExhibitionDetail = () => {
               <div className="relative">
                 <AspectRatio ratio={16/9} className="overflow-hidden rounded-lg">
                   <img 
-                    src={exhibition.imageUrl} 
-                    alt={exhibition.title}
+                    src={exhibition ? createImageSrc(exhibition.imageUrl) : ''}
+                    alt={exhibition?.title || 'Exhibition'}
                     className="w-full h-full object-cover"
+                    onError={handleImageError}
                   />
                 </AspectRatio>
                 {isSoldOut && (

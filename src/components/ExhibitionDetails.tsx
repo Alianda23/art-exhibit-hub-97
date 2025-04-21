@@ -27,7 +27,7 @@ const ExhibitionDetails: React.FC<ExhibitionDetailsProps> = ({ exhibition, isOpe
               src={createImageSrc(exhibition.imageUrl)} 
               alt={exhibition.title}
               className="w-full h-64 object-cover rounded-lg shadow-md"
-              onError={handleImageError}
+              onError={(e) => handleImageError(e)}
             />
           </div>
           <div className="space-y-4">
