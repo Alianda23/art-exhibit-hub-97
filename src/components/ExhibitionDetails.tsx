@@ -3,6 +3,8 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Exhibition } from '@/types';
 import { format } from 'date-fns';
+import { createImageSrc, handleImageError } from '@/utils/imageUtils';
+import { formatPrice, formatDateRange } from '@/utils/formatters';
 
 interface ExhibitionDetailsProps {
   exhibition: Exhibition | null;
@@ -22,9 +24,10 @@ const ExhibitionDetails: React.FC<ExhibitionDetailsProps> = ({ exhibition, isOpe
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
           <div>
             <img 
-              src={exhibition.imageUrl} 
+              src={createImageSrc(exhibition.imageUrl)} 
               alt={exhibition.title}
               className="w-full h-64 object-cover rounded-lg shadow-md"
+              onError={handleImageError}
             />
           </div>
           <div className="space-y-4">
@@ -39,7 +42,7 @@ const ExhibitionDetails: React.FC<ExhibitionDetailsProps> = ({ exhibition, isOpe
             <div>
               <h3 className="font-semibold">Dates</h3>
               <p className="text-gray-600">
-                {format(new Date(exhibition.startDate), 'PPP')} - {format(new Date(exhibition.endDate), 'PPP')}
+                {formatDateRange(exhibition.startDate, exhibition.endDate)}
               </p>
             </div>
             <div>

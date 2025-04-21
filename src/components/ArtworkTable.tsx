@@ -2,6 +2,8 @@
 import React from 'react';
 import { Button } from './ui/button';
 import { Artwork } from '@/types';
+import { createImageSrc, handleImageError } from '@/utils/imageUtils';
+import { formatPrice } from '@/utils/formatters';
 
 interface ArtworkTableProps {
   artworks: Artwork[];
@@ -28,14 +30,15 @@ const ArtworkTable: React.FC<ArtworkTableProps> = ({ artworks, onEdit, onDelete 
             <tr key={artwork.id}>
               <td className="px-6 py-4 whitespace-nowrap">
                 <img 
-                  src={artwork.imageUrl} 
+                  src={createImageSrc(artwork.imageUrl)} 
                   alt={artwork.title}
                   className="h-16 w-16 object-cover rounded"
+                  onError={handleImageError}
                 />
               </td>
               <td className="px-6 py-4 whitespace-nowrap">{artwork.title}</td>
               <td className="px-6 py-4 whitespace-nowrap">{artwork.artist}</td>
-              <td className="px-6 py-4 whitespace-nowrap">KSH {artwork.price}</td>
+              <td className="px-6 py-4 whitespace-nowrap">KSH {artwork.price.toLocaleString()}</td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <span className={`px-2 py-1 text-xs rounded-full ${
                   artwork.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
