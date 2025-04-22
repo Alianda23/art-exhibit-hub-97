@@ -1,3 +1,4 @@
+
 from database import get_db_connection
 from decimal import Decimal
 import random
@@ -139,7 +140,6 @@ def get_all_tickets():
         ORDER BY eb.booking_date DESC
         """
         cursor.execute(query)
-        rows = cursor.fetchall()
         
         tickets = []
         for row in cursor.fetchall():
