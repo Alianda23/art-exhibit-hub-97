@@ -18,7 +18,43 @@ CREATE TABLE IF NOT EXISTS admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tickets table
+-- Artwork Orders table
+CREATE TABLE IF NOT EXISTS artwork_orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    artwork_id INT NOT NULL,
+    name VARCHAR(255),
+    email VARCHAR(255),
+    phone VARCHAR(20),
+    delivery_address TEXT,
+    payment_method ENUM('mpesa', 'card', 'bank') DEFAULT 'mpesa',
+    payment_status ENUM('pending', 'completed', 'failed') NOT NULL DEFAULT 'pending',
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (artwork_id) REFERENCES artworks(id)
+);
+
+-- Exhibition Bookings table
+CREATE TABLE IF NOT EXISTS exhibition_bookings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    exhibition_id INT NOT NULL,
+    name VARCHAR(255),
+    email VARCHAR(255),
+    phone VARCHAR(20),
+    ticket_code VARCHAR(50),
+    slots INT NOT NULL DEFAULT 1,
+    payment_method ENUM('mpesa', 'card', 'bank') DEFAULT 'mpesa',
+    payment_status ENUM('pending', 'completed', 'failed') NOT NULL DEFAULT 'pending',
+    status ENUM('active', 'used', 'cancelled') DEFAULT 'active',
+    booking_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (exhibition_id) REFERENCES exhibitions(id)
+);
+
+-- Legacy tables (kept for backward compatibility)
 CREATE TABLE IF NOT EXISTS tickets (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -31,7 +67,6 @@ CREATE TABLE IF NOT EXISTS tickets (
     FOREIGN KEY (exhibition_id) REFERENCES exhibitions(id)
 );
 
--- Orders table
 CREATE TABLE IF NOT EXISTS orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
