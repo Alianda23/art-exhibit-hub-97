@@ -68,8 +68,8 @@ const OrdersManagement: React.FC<OrdersManagementProps> = ({ token }) => {
   };
 
   const renderStatus = (status: string) => {
-    const variant = status.toLowerCase() === 'completed' ? 'success' : 
-                   status.toLowerCase() === 'pending' ? 'warning' : 'default';
+    const variant = status.toLowerCase() === 'completed' ? 'default' : 
+                   status.toLowerCase() === 'pending' ? 'secondary' : 'outline';
     
     return (
       <Badge variant={variant} className="uppercase">

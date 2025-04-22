@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { FiArrowLeft, FiPackage } from "react-icons/fi";
+import { ArrowLeft, Package } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface OrderDetailsProps {
@@ -61,7 +62,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ token }) => {
     return (
       <div className="space-y-4 p-4">
         <Button variant="outline" onClick={handleBack} className="mb-4">
-          <FiArrowLeft className="mr-2" /> Back to Orders
+          <ArrowLeft className="mr-2" /> Back to Orders
         </Button>
         <Card>
           <CardHeader>
@@ -81,7 +82,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ token }) => {
     return (
       <div className="space-y-4 p-4">
         <Button variant="outline" onClick={handleBack} className="mb-4">
-          <FiArrowLeft className="mr-2" /> Back to Orders
+          <ArrowLeft className="mr-2" /> Back to Orders
         </Button>
         <Card>
           <CardContent className="text-center p-6">
@@ -97,7 +98,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ token }) => {
     return (
       <div className="space-y-4 p-4">
         <Button variant="outline" onClick={handleBack} className="mb-4">
-          <FiArrowLeft className="mr-2" /> Back to Orders
+          <ArrowLeft className="mr-2" /> Back to Orders
         </Button>
         <Card>
           <CardContent className="text-center p-6">
@@ -122,7 +123,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ token }) => {
   return (
     <div className="space-y-4 p-4">
       <Button variant="outline" onClick={handleBack} className="mb-4">
-        <FiArrowLeft className="mr-2" /> Back to Orders
+        <ArrowLeft className="mr-2" /> Back to Orders
       </Button>
 
       <Card>
@@ -130,7 +131,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ token }) => {
           <div className="flex justify-between items-center">
             <CardTitle>Order #{order.id}</CardTitle>
             <Badge 
-              variant={order.payment_status === 'completed' ? 'success' : 'warning'}
+              variant={order.payment_status === 'completed' ? 'default' : 'secondary'}
               className="uppercase"
             >
               {order.payment_status}

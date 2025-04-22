@@ -1,196 +1,144 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { User } from "@/types";
-import { 
-  loginUser, 
-  loginAdmin, 
-  registerUser, 
-  logout as apiLogout, 
-  isAuthenticated as checkIsAuthenticated,
-  isAdmin as checkIsAdmin
-} from "@/services/api";
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type AuthContextType = {
-  currentUser: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  adminLogin: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string, phone: string) => Promise<boolean>;
-  logout: () => void;
-  isAdmin: boolean;
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface AuthContextType {
   isAuthenticated: boolean;
-};
+  isAdmin: boolean;
+  loading: boolean;
+  token: string | null;
+  user: User | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
+}
 
 const AuthContext = createContext<AuthContextType>({
-  currentUser: null,
-  login: async () => false,
-  adminLogin: async () => false,
-  signup: async () => false,
-  logout: () => {},
-  isAdmin: false,
   isAuthenticated: false,
+  isAdmin: false,
+  loading: true,
+  token: null,
+  user: null,
+  login: async () => {},
+  register: async () => {},
+  logout: () => {}
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [isUserAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
-  // Check if user is already logged in
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const isAuthenticated = checkIsAuthenticated();
-        if (isAuthenticated) {
-          const userName = localStorage.getItem('userName') || '';
-          const userId = localStorage.getItem('userId') || localStorage.getItem('adminId') || '';
-          const userIsAdmin = localStorage.getItem('isAdmin') === 'true';
-          
-          console.log("Auth check:", { 
-            userName, 
-            userId, 
-            isAdmin: userIsAdmin,
-            token: localStorage.getItem('token')?.substring(0, 20) + '...',
-            localStorageIsAdmin: localStorage.getItem('isAdmin')
-          });
-          
-          // Create a basic user object from localStorage
-          setCurrentUser({
-            id: userId,
-            name: userName,
-            email: '',  // We don't store sensitive info in localStorage
-            isAdmin: userIsAdmin,
-          });
-          
-          setIsAdmin(userIsAdmin);
-          setIsAuthenticated(true);
-        } else {
-          console.log("User is not authenticated");
-          setCurrentUser(null);
-          setIsAdmin(false);
-          setIsAuthenticated(false);
-        }
-      } catch (error) {
-        console.error("Authentication check error:", error);
-        setCurrentUser(null);
-        setIsAdmin(false);
-        setIsAuthenticated(false);
-      }
-    };
+    // Check if user is logged in on component mount
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
     
-    checkAuth();
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      setIsAuthenticated(true);
+      setIsAdmin(parsedUser.role === 'admin');
+    }
+    
+    setLoading(false);
   }, []);
 
-  // Regular user login
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string) => {
     try {
-      console.log('AuthContext: Attempting user login', { email });
-      const response = await loginUser({ email, password });
-      
-      if (response.error) {
-        console.log('AuthContext: Login failed', response.error);
-        return false;
-      }
-      
-      // Set user state from response
-      setCurrentUser({
-        id: response.user_id?.toString() || '',
-        name: response.name || '',
-        email: email,
-        isAdmin: false,
+      // Simulated API call - in a real app, you'd call your backend
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
       
-      setIsAdmin(false);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+      
+      const { token, user } = data;
+      
+      // Store auth data
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Update state
+      setToken(token);
+      setUser(user);
       setIsAuthenticated(true);
-      console.log('AuthContext: Login successful', { name: response.name, isAdmin: false });
-      return true;
+      setIsAdmin(user.role === 'admin');
+      
     } catch (error) {
-      console.error("Login error:", error);
-      throw error; // Rethrow to handle in component
+      console.error('Login error:', error);
+      throw error;
     }
   };
 
-  // Admin login
-  const adminLogin = async (email: string, password: string): Promise<boolean> => {
+  const register = async (name: string, email: string, password: string) => {
     try {
-      console.log('AuthContext: Attempting admin login', { email });
-      const response = await loginAdmin({ email, password });
+      // Simulated API call
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
       
-      if (response.error) {
-        console.log('AuthContext: Admin login failed', response.error);
-        return false;
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
       }
       
-      // Set admin user state
-      setCurrentUser({
-        id: response.admin_id?.toString() || '',
-        name: response.name || '',
-        email: email,
-        isAdmin: true,
-      });
-      
-      setIsAdmin(true);
-      setIsAuthenticated(true);
-      console.log('AuthContext: Admin login successful', { 
-        name: response.name, 
-        isAdmin: true,
-        token: localStorage.getItem('token')?.substring(0, 20) + '...'
-      });
-      return true;
     } catch (error) {
-      console.error("Admin login error:", error);
-      throw error; // Rethrow to handle in component
-    }
-  };
-  
-  // User signup
-  const signup = async (name: string, email: string, password: string, phone: string): Promise<boolean> => {
-    try {
-      console.log('AuthContext: Attempting signup', { name, email });
-      const response = await registerUser({ name, email, password, phone });
-      
-      if (response.error) {
-        console.log('AuthContext: Signup failed', response.error);
-        return false;
-      }
-      
-      // Set user state after successful registration
-      setCurrentUser({
-        id: response.user_id?.toString() || '',
-        name: name,
-        email: email,
-        isAdmin: false,
-      });
-      
-      setIsAdmin(false);
-      setIsAuthenticated(true);
-      console.log('AuthContext: Signup successful');
-      return true;
-    } catch (error) {
-      console.error("Signup error:", error);
-      throw error; // Rethrow to handle in component
+      console.error('Registration error:', error);
+      throw error;
     }
   };
 
-  // Logout
   const logout = () => {
-    apiLogout();
-    setCurrentUser(null);
-    setIsAdmin(false);
+    // Clear stored data
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Reset state
+    setToken(null);
+    setUser(null);
     setIsAuthenticated(false);
-    console.log('AuthContext: User logged out');
+    setIsAdmin(false);
   };
 
-  const value = {
-    currentUser,
-    login,
-    adminLogin,
-    signup,
-    logout,
-    isAdmin,
-    isAuthenticated: isUserAuthenticated,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        isAdmin,
+        loading,
+        token,
+        user,
+        login,
+        register,
+        logout
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
