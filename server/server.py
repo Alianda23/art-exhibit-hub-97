@@ -17,7 +17,7 @@ from contact import create_contact_message, get_messages, update_message, json_d
 from db_setup import initialize_database
 from middleware import auth_required, admin_required, extract_auth_token, verify_token
 from mpesa import handle_stk_push_request, check_transaction_status, handle_mpesa_callback
-from db_operations import get_all_tickets, get_all_orders
+from db_operations import get_all_tickets, get_all_orders, get_order_details
 
 # Define the port
 PORT = 8000
@@ -732,3 +732,104 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+class APIHandler(http.server.SimpleHTTPRequestHandler):
+    def _set_response(self, status_code=200, content_type='application/json'):
+        self.send_response(status_code)
+        self.send_header('Content-type', content_type)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.end_headers()
+    
+    def do_OPTIONS(self):
+        self._set_response()
+    
+    def serve_static_file(self, file_path):
+        """Serve a static file based on its MIME type"""
+        try:
+            # Check if file exists
+            if not os.path.exists(file_path):
+                self.send_response(404)
+                self.end_headers()
+                return
+                
+            # Determine the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if not content_type:
+                content_type = 'application/octet-stream'
+                
+            # Get file size
+            file_size = os.path.getsize(file_path)
+            
+            # Set headers
+            self.send_response(200)
+            self.send_header('Content-type', content_type)
+            self.send_header('Content-Length', str(file_size))
+            self.end_headers()
+            
+            # Read and send the file
+            with open(file_path, 'rb') as f:
+                self.wfile.write(f.read())
+                
+        except Exception as e:
+            print(f"Error serving static file: {e}")
+            self.send_response(500)
+            self.end_headers()
+    
+    def do_GET(self):
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+        
+        # Handle static files (images, CSS, JS, etc.)
+        if path.startswith('/static/'):
+            file_path = os.path.join(os.path.dirname(__file__), path[1:])
+            # Debugging info
+            print(f"Serving static file: {file_path}")
+            self.serve_static_file(file_path)
+            return
+        
+        # Handle API endpoints
+        # Handle GET /artworks
+        if path == '/artworks':
+            response = get_all_artworks()
+            self._set_response()
+            self.wfile.write(json_dumps(response).encode())
+            return
+        
+        # Handle GET /artworks/{id}
+        elif path.startswith('/artworks/') and len(path.split('/')) == 3:
+            artwork_id = path.split('/')[2]
+            response = get_artwork(artwork_id)
+            self._set_response()
+            self.wfile.write(json_dumps(response).encode())
+            return
+        
+        # Handle GET /exhibitions
+        elif path == '/exhibitions':
+            response = get_all_exhibitions()
+            self._set_response()
+            self.wfile.write(json_dumps(response).encode())
+            return
+        
+        # Handle GET /exhibitions/{id}
+        elif path.startswith('/exhibitions/') and len(path.split('/')) == 3:
+            exhibition_id = path.split('/')[2]
+            response = get_exhibition(exhibition_id)
+            self._set_response()
+            self.wfile.write(json_dumps(response).encode())
+            return
+        
+        # Handle GET /messages (admin only)
+        elif path == '/messages':
+            print("Processing GET /messages request")
+            auth_header = self.headers.get('Authorization', '')
+            print(f"Authorization header: {auth_header[:20]}... (truncated)")
+            
+            # Get messages
+            response = get_messages(auth_header)
+            print(f"Get messages response: {response}")
+            
+            if "error" in response:
+                self._set_response(401)
+                self.wfile.write(json_dumps({"error": response

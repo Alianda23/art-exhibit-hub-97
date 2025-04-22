@@ -1,186 +1,64 @@
 
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import './App.css';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import Home from './pages/Home';
-import ArtworksPage from './pages/ArtworksPage';
-import ArtworkDetail from './pages/ArtworkDetail';
-import ExhibitionsPage from './pages/ExhibitionsPage'; 
-import ExhibitionDetail from './pages/ExhibitionDetail';
-import Contact from './pages/Contact';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Profile from './pages/Profile';
-import Admin from './pages/Admin';
-import AdminLogin from './pages/AdminLogin';
-import AdminMessages from './pages/AdminMessages';
-import AdminTickets from './pages/AdminTickets';
-import AdminArtworks from './pages/AdminArtworks';
-import AdminExhibitions from './pages/AdminExhibitions';
-import AdminOrders from './pages/AdminOrders';
-import NotFound from './pages/NotFound';
-import ArtworkCheckout from './pages/ArtworkCheckout';
-import ExhibitionCheckout from './pages/ExhibitionCheckout';
-import Payment from './pages/Payment';
-import PaymentSuccess from './pages/PaymentSuccess';
-import ChatBot from './components/ChatBot';
-import AdminLayout from './components/AdminLayout';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "@/components/ui/toaster";
+import PublicLayout from "@/layouts/PublicLayout";
+import AdminLayout from "@/layouts/AdminLayout";
+import HomePage from "@/pages/HomePage";
+import GalleryPage from "@/pages/GalleryPage";
+import ArtworkDetails from "@/pages/ArtworkDetails";
+import ExhibitionsPage from "@/pages/ExhibitionsPage";
+import ExhibitionDetails from "@/pages/ExhibitionDetails";
+import AboutPage from "@/pages/AboutPage";
+import ContactPage from "@/pages/ContactPage";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import DashboardPage from "@/pages/admin/DashboardPage";
+import AdminArtworksPage from "@/pages/admin/ArtworksPage";
+import AdminExhibitionsPage from "@/pages/admin/ExhibitionsPage";
+import OrdersPage from "@/pages/admin/OrdersPage";
+import OrderDetailsPage from "@/pages/admin/OrderDetailsPage";
+import MessagesPage from "@/pages/admin/MessagesPage";
+import NotFoundPage from "@/pages/NotFoundPage";
+import ScrollToTop from "@/components/ScrollToTop";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 function App() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Routes>
-        <Route path="/admin" element={<AdminLayout><Admin /></AdminLayout>} />
-        <Route path="/admin/messages" element={<AdminLayout><AdminMessages /></AdminLayout>} />
-        <Route path="/admin/tickets" element={<AdminLayout><AdminTickets /></AdminLayout>} />
-        <Route path="/admin/artworks" element={<AdminLayout><AdminArtworks /></AdminLayout>} />
-        <Route path="/admin/exhibitions" element={<AdminLayout><AdminExhibitions /></AdminLayout>} />
-        <Route path="/admin/orders" element={<AdminLayout><AdminOrders /></AdminLayout>} />
-        <Route path="/admin-login" element={<AdminLogin />} />
-        
-        <Route path="/" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <Home />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="/artworks" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <ArtworksPage />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="/artworks/:id" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <ArtworkDetail />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="/checkout/artwork/:id" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <ArtworkCheckout />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="/exhibitions" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <ExhibitionsPage />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="/exhibitions/:id" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <ExhibitionDetail />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="/checkout/exhibition/:id" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <ExhibitionCheckout />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="/payment" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <Payment />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="/payment-success" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <PaymentSuccess />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="/contact" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <Contact />
-            </main>
-            <Footer />
-          </>
-        } />
-        <Route path="/login" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <Login />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="/signup" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <Signup />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="/profile" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <Profile />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-        <Route path="*" element={
-          <>
-            <Navbar />
-            <main className="flex-grow">
-              <NotFound />
-            </main>
-            <Footer />
-            <ChatBot />
-          </>
-        } />
-      </Routes>
-    </div>
+    <AuthProvider>
+      <Router>
+        <ScrollToTop />
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<PublicLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="gallery" element={<GalleryPage />} />
+            <Route path="gallery/:id" element={<ArtworkDetails />} />
+            <Route path="exhibitions" element={<ExhibitionsPage />} />
+            <Route path="exhibitions/:id" element={<ExhibitionDetails />} />
+            <Route path="about" element={<AboutPage />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="register" element={<RegisterPage />} />
+          </Route>
+          
+          {/* Admin routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="artworks" element={<AdminArtworksPage />} />
+            <Route path="exhibitions" element={<AdminExhibitionsPage />} />
+            <Route path="orders" element={<OrdersPage />} />
+            <Route path="orders/:id/:type" element={<OrderDetailsPage />} />
+            <Route path="messages" element={<MessagesPage />} />
+          </Route>
+          
+          {/* 404 Page */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+        <Toaster />
+      </Router>
+    </AuthProvider>
   );
 }
 

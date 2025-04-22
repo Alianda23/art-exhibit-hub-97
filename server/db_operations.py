@@ -95,20 +95,32 @@ def get_all_orders():
     cursor = connection.cursor()
     
     try:
-        # Get artwork orders
+        # Get artwork orders with artwork title
         query = """
-        SELECT ao.*, u.name as user_name, a.title as item_title
+        SELECT ao.id, ao.user_id, u.name as user_name, ao.artwork_id, 
+               a.title as item_title, a.image_url as artwork_image_url,
+               ao.order_date, ao.total_amount, ao.payment_status
         FROM artwork_orders ao
         JOIN users u ON ao.user_id = u.id
         JOIN artworks a ON ao.artwork_id = a.id
         ORDER BY ao.order_date DESC
         """
         cursor.execute(query)
-        artwork_orders = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
         
-        for order in artwork_orders:
+        artwork_orders = []
+        for row in cursor.fetchall():
+            order = {}
+            order['id'] = row[0]
+            order['user_id'] = row[1]
+            order['user_name'] = row[2]
+            order['reference_id'] = row[3]
+            order['item_title'] = row[4]
+            order['image_url'] = row[5]
+            order['date'] = row[6]
+            order['amount'] = row[7]
+            order['status'] = row[8]
             order['type'] = 'artwork'
-            order['reference_id'] = order['artwork_id']
+            artwork_orders.append(order)
             
         return {"orders": artwork_orders}
     except Exception as e:
@@ -119,8 +131,8 @@ def get_all_orders():
             cursor.close()
             connection.close()
 
-def get_all_tickets():
-    """Get all tickets from database"""
+def get_order_details(order_id, order_type):
+    """Get details for a specific order"""
     connection = get_db_connection()
     if connection is None:
         return {"error": "Database connection failed"}
@@ -128,74 +140,62 @@ def get_all_tickets():
     cursor = connection.cursor()
     
     try:
-        # Get exhibition bookings
-        query = """
-        SELECT eb.id, eb.user_id, u.name as user_name, eb.exhibition_id, 
-               e.title as exhibition_title, e.image_url as exhibition_image_url,
-               eb.booking_date, eb.ticket_code, eb.slots, eb.status,
-               eb.total_amount, eb.payment_status
-        FROM exhibition_bookings eb
-        JOIN users u ON eb.user_id = u.id
-        JOIN exhibitions e ON eb.exhibition_id = e.id
-        ORDER BY eb.booking_date DESC
-        """
-        cursor.execute(query)
-        
-        tickets = []
-        for row in cursor.fetchall():
-            ticket = dict(zip([col[0] for col in cursor.description], row))
-            tickets.append(ticket)
+        if order_type == 'artwork':
+            # Get artwork order details
+            query = """
+            SELECT ao.id, ao.user_id, u.name as user_name, u.email as user_email, 
+                   u.phone as user_phone, ao.artwork_id, a.title as artwork_title, 
+                   a.artist, a.image_url as artwork_image, a.price, a.dimensions,
+                   a.medium, a.year, ao.order_date, ao.total_amount, 
+                   ao.payment_status, ao.delivery_address
+            FROM artwork_orders ao
+            JOIN users u ON ao.user_id = u.id
+            JOIN artworks a ON ao.artwork_id = a.id
+            WHERE ao.id = %s
+            """
+            cursor.execute(query, (order_id,))
+            row = cursor.fetchone()
             
-        return {"tickets": tickets}
+            if not row:
+                return {"error": "Order not found"}
+            
+            order = {
+                "id": row[0],
+                "user_id": row[1],
+                "user_name": row[2],
+                "user_email": row[3],
+                "user_phone": row[4],
+                "artwork_id": row[5],
+                "artwork_title": row[6],
+                "artist": row[7],
+                "artwork_image": row[8],
+                "price": row[9],
+                "dimensions": row[10],
+                "medium": row[11],
+                "year": row[12],
+                "order_date": row[13],
+                "total_amount": row[14],
+                "payment_status": row[15],
+                "delivery_address": row[16],
+                "type": "artwork"
+            }
+            
+            return {"order": order}
+        
+        else:
+            return {"error": "Invalid order type"}
     except Exception as e:
-        print(f"Error getting tickets: {e}")
+        print(f"Error getting order details: {e}")
         return {"error": str(e)}
     finally:
         if connection.is_connected():
             cursor.close()
             connection.close()
 
+def get_all_tickets():
+    """Get all tickets from database"""
+    # ... keep existing code
+    
 def get_user_orders(user_id):
     """Get all orders and bookings for a specific user"""
-    connection = get_db_connection()
-    if connection is None:
-        return {"error": "Database connection failed"}
-    
-    cursor = connection.cursor()
-    
-    try:
-        # Get user's artwork orders
-        artwork_query = """
-        SELECT ao.id, ao.artwork_id, a.title as artworkTitle, a.artist, a.image_url,
-               ao.order_date as date, a.price, 0 as deliveryFee, 
-               ao.total_amount as totalAmount, 
-               ao.payment_status as status, ao.delivery_address as deliveryAddress
-        FROM artwork_orders ao
-        JOIN artworks a ON ao.artwork_id = a.id
-        WHERE ao.user_id = %s
-        ORDER BY ao.order_date DESC
-        """
-        cursor.execute(artwork_query, (user_id,))
-        orders = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
-        
-        # Get user's exhibition bookings
-        booking_query = """
-        SELECT eb.id, eb.exhibition_id as exhibitionId, e.title as exhibitionTitle,
-               eb.booking_date as date, e.location, eb.slots, eb.ticket_code,
-               eb.total_amount as totalAmount, eb.status, e.image_url
-        FROM exhibition_bookings eb
-        JOIN exhibitions e ON eb.exhibition_id = e.id
-        WHERE eb.user_id = %s
-        ORDER BY eb.booking_date DESC
-        """
-        cursor.execute(booking_query, (user_id,))
-        bookings = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
-        
-        return {"orders": orders, "bookings": bookings}
-    except Exception as e:
-        print(f"Error getting user orders: {e}")
-        return {"error": str(e)}
-    finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
+    # ... keep existing code
