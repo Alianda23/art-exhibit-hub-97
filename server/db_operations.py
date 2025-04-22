@@ -1,4 +1,3 @@
-
 from database import get_db_connection
 from decimal import Decimal
 import random
@@ -130,15 +129,23 @@ def get_all_tickets():
     try:
         # Get exhibition bookings
         query = """
-        SELECT eb.*, u.name as user_name, e.title as exhibition_title, e.image_url as exhibition_image_url
+        SELECT eb.id, eb.user_id, u.name as user_name, eb.exhibition_id, 
+               e.title as exhibition_title, e.image_url as exhibition_image_url,
+               eb.booking_date, eb.ticket_code, eb.slots, eb.status,
+               eb.total_amount, eb.payment_status
         FROM exhibition_bookings eb
         JOIN users u ON eb.user_id = u.id
         JOIN exhibitions e ON eb.exhibition_id = e.id
         ORDER BY eb.booking_date DESC
         """
         cursor.execute(query)
-        tickets = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        rows = cursor.fetchall()
         
+        tickets = []
+        for row in cursor.fetchall():
+            ticket = dict(zip([col[0] for col in cursor.description], row))
+            tickets.append(ticket)
+            
         return {"tickets": tickets}
     except Exception as e:
         print(f"Error getting tickets: {e}")

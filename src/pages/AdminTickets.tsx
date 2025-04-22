@@ -20,15 +20,17 @@ import { createImageSrc, handleImageError, preloadImage } from '@/utils/imageUti
 
 interface Ticket {
   id: string;
-  userId: string;
-  userName: string;
-  exhibitionId: string;
-  exhibitionTitle: string;
-  exhibitionImageUrl?: string;
-  bookingDate: string;
-  ticketCode: string;
+  user_id: string;
+  user_name: string;
+  exhibition_id: string;
+  exhibition_title: string;
+  exhibition_image_url?: string;
+  booking_date: string;
+  ticket_code: string;
   slots: number;
   status: 'active' | 'used' | 'cancelled';
+  total_amount: number;
+  payment_status: 'pending' | 'completed' | 'failed';
 }
 
 const AdminTickets = () => {
@@ -60,8 +62,8 @@ const AdminTickets = () => {
     // Preload all ticket images when data is available
     if (data?.tickets) {
       data.tickets.forEach((ticket: Ticket) => {
-        if (ticket.exhibitionImageUrl) {
-          preloadImage(ticket.exhibitionImageUrl);
+        if (ticket.exhibition_image_url) {
+          preloadImage(ticket.exhibition_image_url);
         }
       });
     }
@@ -166,9 +168,9 @@ const AdminTickets = () => {
                 <TableBody>
                   {tickets.map((ticket: Ticket) => (
                     <TableRow key={ticket.id}>
-                      <TableCell>{ticket.userName}</TableCell>
-                      <TableCell>{ticket.exhibitionTitle}</TableCell>
-                      <TableCell>{formatDate(ticket.bookingDate)}</TableCell>
+                      <TableCell>{ticket.user_name}</TableCell>
+                      <TableCell>{ticket.exhibition_title}</TableCell>
+                      <TableCell>{formatDate(ticket.booking_date)}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(ticket.status)}>
                           {ticket.status.toUpperCase()}
@@ -217,14 +219,14 @@ const AdminTickets = () => {
               </div>
               
               <div className="space-y-4">
-                {selectedTicket.exhibitionImageUrl && (
+                {selectedTicket.exhibition_image_url && (
                   <div className="mb-4">
                     <img 
-                      src={createImageSrc(selectedTicket.exhibitionImageUrl)} 
-                      alt={selectedTicket.exhibitionTitle} 
+                      src={createImageSrc(selectedTicket.exhibition_image_url)} 
+                      alt={selectedTicket.exhibition_title} 
                       className="w-full h-48 object-cover rounded-md"
                       onError={(e) => {
-                        console.error(`Failed to load image: ${selectedTicket.exhibitionImageUrl}`);
+                        console.error(`Failed to load image: ${selectedTicket.exhibition_image_url}`);
                         (e.target as HTMLImageElement).src = "/placeholder.svg";
                       }}
                     />
@@ -233,15 +235,15 @@ const AdminTickets = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <p className="text-sm text-gray-500">User:</p>
-                    <p className="font-medium">{selectedTicket.userName}</p>
+                    <p className="font-medium">{selectedTicket.user_name}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Exhibition:</p>
-                    <p className="font-medium">{selectedTicket.exhibitionTitle}</p>
+                    <p className="font-medium">{selectedTicket.exhibition_title}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Booking Date:</p>
-                    <p>{formatDate(selectedTicket.bookingDate)}</p>
+                    <p>{formatDate(selectedTicket.booking_date)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Slots:</p>
@@ -249,7 +251,7 @@ const AdminTickets = () => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Ticket Code:</p>
-                    <p className="font-mono bg-gray-100 px-2 py-1 rounded">{selectedTicket.ticketCode}</p>
+                    <p className="font-mono bg-gray-100 px-2 py-1 rounded">{selectedTicket.ticket_code}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Status:</p>
