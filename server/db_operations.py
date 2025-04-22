@@ -37,10 +37,10 @@ def create_order(user_id, order_type, reference_id, amount):
             
             # Store exhibition orders in exhibition_bookings table
             query = """
-            INSERT INTO exhibition_bookings (user_id, exhibition_id, total_amount, payment_status, ticket_code)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO exhibition_bookings (user_id, exhibition_id, total_amount, payment_status, ticket_code, slots, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(query, (user_id, reference_id, amount, 'pending', ticket_code))
+            cursor.execute(query, (user_id, reference_id, amount, 'pending', ticket_code, 1, 'active'))
             connection.commit()
             
             order_id = cursor.lastrowid
@@ -68,7 +68,7 @@ def create_ticket(user_id, exhibition_id, slots):
         # Generate ticket code
         ticket_code = generate_ticket_code()
         
-        # Store tickets in exhibition_bookings table
+        # Store tickets in exhibition_bookings table with the ticket_code field
         query = """
         INSERT INTO exhibition_bookings (user_id, exhibition_id, ticket_code, slots, status)
         VALUES (%s, %s, %s, %s, %s)
@@ -159,7 +159,7 @@ def get_user_orders(user_id):
     try:
         # Get user's artwork orders
         artwork_query = """
-        SELECT ao.id, ao.artwork_id, a.title as artworkTitle, a.artist, 
+        SELECT ao.id, ao.artwork_id, a.title as artworkTitle, a.artist, a.image_url,
                ao.order_date as date, a.price, 0 as deliveryFee, 
                ao.total_amount as totalAmount, 
                ao.payment_status as status, ao.delivery_address as deliveryAddress
@@ -174,8 +174,8 @@ def get_user_orders(user_id):
         # Get user's exhibition bookings
         booking_query = """
         SELECT eb.id, eb.exhibition_id as exhibitionId, e.title as exhibitionTitle,
-               eb.booking_date as date, e.location, eb.slots,
-               eb.total_amount as totalAmount, eb.status
+               eb.booking_date as date, e.location, eb.slots, eb.ticket_code,
+               eb.total_amount as totalAmount, eb.status, e.image_url
         FROM exhibition_bookings eb
         JOIN exhibitions e ON eb.exhibition_id = e.id
         WHERE eb.user_id = %s
