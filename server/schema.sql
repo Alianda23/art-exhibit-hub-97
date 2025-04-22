@@ -18,6 +18,37 @@ CREATE TABLE IF NOT EXISTS admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Artworks table
+CREATE TABLE IF NOT EXISTS artworks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    artist VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    dimensions VARCHAR(100),
+    medium VARCHAR(100),
+    year INT,
+    image_url VARCHAR(255),
+    status ENUM('available', 'sold') DEFAULT 'available',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Exhibitions table
+CREATE TABLE IF NOT EXISTS exhibitions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    location VARCHAR(255) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    ticket_price DECIMAL(10, 2) NOT NULL,
+    image_url VARCHAR(255),
+    total_slots INT NOT NULL,
+    available_slots INT NOT NULL,
+    status ENUM('upcoming', 'ongoing', 'past') NOT NULL DEFAULT 'upcoming',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Artwork Orders table
 CREATE TABLE IF NOT EXISTS artwork_orders (
     id INT AUTO_INCREMENT PRIMARY KEY,

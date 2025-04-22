@@ -32,16 +32,19 @@ def create_order(user_id, order_type, reference_id, amount):
             return {"success": True, "order_id": order_id}
         
         elif order_type == 'exhibition':
+            # Generate a ticket code for the exhibition booking
+            ticket_code = generate_ticket_code()
+            
             # Store exhibition orders in exhibition_bookings table
             query = """
-            INSERT INTO exhibition_bookings (user_id, exhibition_id, total_amount, payment_status)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO exhibition_bookings (user_id, exhibition_id, total_amount, payment_status, ticket_code)
+            VALUES (%s, %s, %s, %s, %s)
             """
-            cursor.execute(query, (user_id, reference_id, amount, 'pending'))
+            cursor.execute(query, (user_id, reference_id, amount, 'pending', ticket_code))
             connection.commit()
             
             order_id = cursor.lastrowid
-            return {"success": True, "order_id": order_id}
+            return {"success": True, "order_id": order_id, "ticket_code": ticket_code}
         
         else:
             return {"error": "Invalid order type"}
@@ -62,12 +65,7 @@ def create_ticket(user_id, exhibition_id, slots):
     cursor = connection.cursor()
     
     try:
-        # Check if exhibition_bookings table exists before inserting
-        cursor.execute("SHOW TABLES LIKE 'exhibition_bookings'")
-        if not cursor.fetchone():
-            print("Exhibition_bookings table doesn't exist")
-            return {"error": "Exhibition bookings table doesn't exist"}
-        
+        # Generate ticket code
         ticket_code = generate_ticket_code()
         
         # Store tickets in exhibition_bookings table
@@ -97,12 +95,7 @@ def get_all_orders():
     cursor = connection.cursor()
     
     try:
-        # Check if artwork_orders table exists before querying
-        cursor.execute("SHOW TABLES LIKE 'artwork_orders'")
-        if not cursor.fetchone():
-            print("Artwork_orders table doesn't exist")
-            return {"orders": []}
-        
+        # Get artwork orders
         query = """
         SELECT ao.*, u.name as user_name, a.title as item_title
         FROM artwork_orders ao
@@ -135,12 +128,7 @@ def get_all_tickets():
     cursor = connection.cursor()
     
     try:
-        # Check if exhibition_bookings table exists before querying
-        cursor.execute("SHOW TABLES LIKE 'exhibition_bookings'")
-        if not cursor.fetchone():
-            print("Exhibition_bookings table doesn't exist")
-            return {"tickets": []}
-        
+        # Get exhibition bookings
         query = """
         SELECT eb.*, u.name as user_name, e.title as exhibition_title, e.image_url as exhibition_image_url
         FROM exhibition_bookings eb
@@ -154,6 +142,51 @@ def get_all_tickets():
         return {"tickets": tickets}
     except Exception as e:
         print(f"Error getting tickets: {e}")
+        return {"error": str(e)}
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def get_user_orders(user_id):
+    """Get all orders and bookings for a specific user"""
+    connection = get_db_connection()
+    if connection is None:
+        return {"error": "Database connection failed"}
+    
+    cursor = connection.cursor()
+    
+    try:
+        # Get user's artwork orders
+        artwork_query = """
+        SELECT ao.id, ao.artwork_id, a.title as artworkTitle, a.artist, 
+               ao.order_date as date, a.price, 0 as deliveryFee, 
+               ao.total_amount as totalAmount, 
+               ao.payment_status as status, ao.delivery_address as deliveryAddress
+        FROM artwork_orders ao
+        JOIN artworks a ON ao.artwork_id = a.id
+        WHERE ao.user_id = %s
+        ORDER BY ao.order_date DESC
+        """
+        cursor.execute(artwork_query, (user_id,))
+        orders = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        
+        # Get user's exhibition bookings
+        booking_query = """
+        SELECT eb.id, eb.exhibition_id as exhibitionId, e.title as exhibitionTitle,
+               eb.booking_date as date, e.location, eb.slots,
+               eb.total_amount as totalAmount, eb.status
+        FROM exhibition_bookings eb
+        JOIN exhibitions e ON eb.exhibition_id = e.id
+        WHERE eb.user_id = %s
+        ORDER BY eb.booking_date DESC
+        """
+        cursor.execute(booking_query, (user_id,))
+        bookings = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        
+        return {"orders": orders, "bookings": bookings}
+    except Exception as e:
+        print(f"Error getting user orders: {e}")
         return {"error": str(e)}
     finally:
         if connection.is_connected():

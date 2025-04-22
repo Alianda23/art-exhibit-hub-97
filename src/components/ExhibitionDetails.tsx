@@ -24,10 +24,10 @@ const ExhibitionDetails: React.FC<ExhibitionDetailsProps> = ({ exhibition, isOpe
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
           <div>
             <img 
-              src={createImageSrc(exhibition.imageUrl)} 
+              src={exhibition.imageUrl ? createImageSrc(exhibition.imageUrl) : '/placeholder.svg'} 
               alt={exhibition.title}
               className="w-full h-64 object-cover rounded-lg shadow-md"
-              onError={(e) => handleImageError(e)}
+              onError={handleImageError}
             />
           </div>
           <div className="space-y-4">
@@ -47,7 +47,7 @@ const ExhibitionDetails: React.FC<ExhibitionDetailsProps> = ({ exhibition, isOpe
             </div>
             <div>
               <h3 className="font-semibold">Ticket Price</h3>
-              <p className="text-gray-600">KSH {exhibition.ticketPrice}</p>
+              <p className="text-gray-600">{formatPrice(exhibition.ticketPrice)}</p>
             </div>
             <div>
               <h3 className="font-semibold">Available Slots</h3>
